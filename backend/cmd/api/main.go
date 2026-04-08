@@ -12,6 +12,8 @@ import (
 	"prediction/internal/balance"
 	"prediction/internal/config"
 	"prediction/internal/httpapi"
+	"prediction/internal/market"
+	"prediction/internal/pacifica"
 	"prediction/internal/player"
 	"prediction/internal/storage"
 )
@@ -40,6 +42,15 @@ func main() {
 	playerRepository := storage.NewPlayerPostgresRepository(db.Pool())
 	sessionRepository := storage.NewSessionPostgresRepository(db.Pool())
 	balanceRepository := storage.NewBalancePostgresRepository(db.Pool())
+	marketRepository := storage.NewMarketPostgresRepository(db.Pool())
+	pacificaHTTPClient := &http.Client{
+		Timeout: cfg.Pacifica.MarketInfoHTTPTimeout,
+	}
+	marketInfoClient := pacifica.NewHTTPMarketInfoClient(
+		cfg.Pacifica.RestBaseURL,
+		pacificaHTTPClient,
+		cfg.Pacifica.MarketInfoCacheTTL,
+	)
 
 	authService := auth.NewService(auth.ServiceDeps{
 		Config:            cfg,
@@ -48,10 +59,13 @@ func main() {
 	})
 	playerService := player.NewService(playerRepository)
 	balanceService := balance.NewService(balanceRepository)
+	marketValidator := market.NewValidationService(marketInfoClient)
+	marketService := market.NewService(marketRepository, marketValidator)
 
 	authController := auth.NewController(authService)
 	playerController := player.NewController(playerService)
 	balanceController := balance.NewController(balanceService)
+	marketController := market.NewController(marketService)
 	cookieManager := auth.NewCookieManager(cfg.Auth)
 	requireSession := httpapi.NewRequireSessionMiddleware(authController, cookieManager)
 
@@ -59,11 +73,15 @@ func main() {
 		Auth:    authController,
 		Player:  playerController,
 		Balance: balanceController,
+		Market:  marketController,
 	})
 
 	app.RegisterRoute(http.MethodPost, "/api/v1/players/guest", httpapi.NewCreateGuestSessionHandler(authController, playerController, cookieManager))
 	app.RegisterRoute(http.MethodGet, "/api/v1/players/me", requireSession(httpapi.NewGetMeHandler(playerController)))
 	app.RegisterRoute(http.MethodGet, "/api/v1/players/me/balance", requireSession(httpapi.NewGetBalanceHandler(balanceController)))
+	app.RegisterRoute(http.MethodPost, "/api/v1/markets", requireSession(httpapi.NewCreateMarketHandler(marketController)))
+	app.RegisterRoute(http.MethodGet, "/api/v1/markets", httpapi.NewListMarketsHandler(marketController))
+	app.RegisterRoute(http.MethodGet, "/api/v1/markets/", httpapi.NewGetMarketDetailHandler(marketController))
 
 	server := &http.Server{
 		Addr:              cfg.AppAddr,

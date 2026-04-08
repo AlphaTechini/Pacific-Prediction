@@ -10,6 +10,9 @@ I use this folder for HTTP routing, request validation, response shaping, and tr
 - I shape responses here because the frontend should consume product-shaped payloads, not raw Pacifica responses.
 - I keep route ownership in `main.go`, but I use a shared `Application` container and `Router` helper here so dependency wiring and HTTP method checks stay consistent across modules.
 - I let auth middleware resolve the session cookie into request context here so domain packages do not depend on HTTP cookie parsing.
+- Market creation uses the same thin-handler pattern, with request parsing and RFC3339 coercion in HTTP and domain validation/persistence in the market module.
+- Market listing returns grouped active and resolved catalogs for the default dashboard read path.
+- Market detail uses a path-based lookup under `/api/v1/markets/` because `http.ServeMux` does not support colon-style route params directly.
 - The tradeoff is an extra translation layer, but it gives me a cleaner contract and safer future changes.
 
 ## Logic Tracking

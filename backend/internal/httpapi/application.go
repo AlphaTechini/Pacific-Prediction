@@ -6,6 +6,7 @@ import (
 	"prediction/internal/auth"
 	"prediction/internal/balance"
 	"prediction/internal/config"
+	"prediction/internal/market"
 	"prediction/internal/player"
 	"prediction/internal/storage"
 )
@@ -20,6 +21,7 @@ type Controllers struct {
 	Auth    auth.Controller
 	Player  player.Controller
 	Balance balance.Controller
+	Market  market.Controller
 }
 
 type Application struct {

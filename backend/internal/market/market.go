@@ -30,3 +30,8 @@ type ListFilter struct {
 	Status domain.MarketStatus
 	Limit  int
 }
+
+type Catalog struct {
+	Active   []Record
+	Resolved []Record
+}
