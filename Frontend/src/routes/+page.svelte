@@ -1,23 +1,13 @@
+<script lang="ts">
+    import TopNavBar from '$lib/components/TopNavBar.svelte';
+    import Button from '$lib/components/Button.svelte';
+</script>
+
 <svelte:head>
     <title>Pacifica Pulse | Technical Prediction Markets</title>
 </svelte:head>
 
-<!-- TopNavBar -->
-<nav class="fixed top-0 w-full z-50 bg-[#111417]/80 backdrop-blur-md border-b border-[#3b494b]/15">
-    <div class="flex justify-between items-center h-16 px-6 max-w-7xl mx-auto">
-        <div class="text-xl font-bold tracking-tighter text-[#dbfcff] font-headline">Pacifica Pulse</div>
-        <div class="hidden md:flex items-center space-x-8">
-            <a class="text-[#00F0FF] font-medium border-b border-[#00F0FF] transition-colors duration-200 py-1" href="/#">Markets</a>
-            <a class="text-slate-400 font-medium hover:text-[#dbfcff] transition-colors duration-200" href="/#">Intelligence</a>
-            <a class="text-slate-400 font-medium hover:text-[#dbfcff] transition-colors duration-200" href="/#">Pricing</a>
-            <a class="text-slate-400 font-medium hover:text-[#dbfcff] transition-colors duration-200" href="/#">Docs</a>
-        </div>
-        <div class="flex items-center gap-4">
-            <button class="text-slate-400 font-medium px-4 py-2 hover:text-[#dbfcff] transition-colors">Log In</button>
-            <button class="gradient-primary text-on-primary-fixed px-5 py-2 font-bold tracking-tight rounded-sm scale-95 active:scale-90 transition-transform">Launch Terminal</button>
-        </div>
-    </div>
-</nav>
+<TopNavBar />
 
 <!-- Hero Section -->
 <main class="pt-32 pb-20 px-6 max-w-7xl mx-auto">
@@ -34,8 +24,8 @@
                 Trade the Pulse of the Market. A high-fidelity prediction environment for technical traders.
             </p>
             <div class="flex flex-wrap gap-4 pt-4">
-                <button class="gradient-primary text-on-primary-fixed px-8 py-4 font-bold rounded-sm text-lg hover:brightness-110 transition-all">Launch Terminal</button>
-                <button class="border border-outline-variant/30 text-primary px-8 py-4 font-bold rounded-sm text-lg hover:bg-surface-container-high transition-all">View Markets</button>
+                <Button variant="primary" class="px-8 py-4">Launch Terminal</Button>
+                <Button variant="outline" class="px-8 py-4">View Markets</Button>
             </div>
         </div>
         

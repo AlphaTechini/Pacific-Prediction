@@ -8,6 +8,7 @@ I use this folder for virtual balance state, balance locking, unlocking, debits,
 
 - I keep balance separate from player and position logic because anything that controls spendable value deserves a first-class boundary.
 - This package should own available-balance rules, locked-balance rules, and authoritative mutation paths.
+- The first balance endpoint is read-only and uses the persisted balance row as the authoritative source while mutation flows wait for later position and settlement tasks.
 - The tradeoff is another module boundary, but it makes payout and stake handling much safer to evolve later.
 
 ## Logic Tracking

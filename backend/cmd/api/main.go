@@ -8,7 +8,11 @@ import (
 	"syscall"
 	"time"
 
+	"prediction/internal/auth"
+	"prediction/internal/balance"
 	"prediction/internal/config"
+	"prediction/internal/httpapi"
+	"prediction/internal/player"
 	"prediction/internal/storage"
 )
 
@@ -32,9 +36,38 @@ func main() {
 		log.Fatalf("run migrations: %v", err)
 	}
 
+	app := httpapi.NewApplication(cfg, db)
+	playerRepository := storage.NewPlayerPostgresRepository(db.Pool())
+	sessionRepository := storage.NewSessionPostgresRepository(db.Pool())
+	balanceRepository := storage.NewBalancePostgresRepository(db.Pool())
+
+	authService := auth.NewService(auth.ServiceDeps{
+		Config:            cfg,
+		TxManager:         app.Dependencies.TxManager,
+		SessionRepository: sessionRepository,
+	})
+	playerService := player.NewService(playerRepository)
+	balanceService := balance.NewService(balanceRepository)
+
+	authController := auth.NewController(authService)
+	playerController := player.NewController(playerService)
+	balanceController := balance.NewController(balanceService)
+	cookieManager := auth.NewCookieManager(cfg.Auth)
+	requireSession := httpapi.NewRequireSessionMiddleware(authController, cookieManager)
+
+	app.WithControllers(httpapi.Controllers{
+		Auth:    authController,
+		Player:  playerController,
+		Balance: balanceController,
+	})
+
+	app.RegisterRoute(http.MethodPost, "/api/v1/players/guest", httpapi.NewCreateGuestSessionHandler(authController, playerController, cookieManager))
+	app.RegisterRoute(http.MethodGet, "/api/v1/players/me", requireSession(httpapi.NewGetMeHandler(playerController)))
+	app.RegisterRoute(http.MethodGet, "/api/v1/players/me/balance", requireSession(httpapi.NewGetBalanceHandler(balanceController)))
+
 	server := &http.Server{
 		Addr:              cfg.AppAddr,
-		Handler:           http.NewServeMux(),
+		Handler:           app.Router,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

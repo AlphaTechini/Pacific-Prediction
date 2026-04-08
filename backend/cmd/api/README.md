@@ -8,6 +8,7 @@ I reserve this folder for the main HTTP API process entrypoint.
 
 - This package should wire config, database connections, Pacifica clients, HTTP routes, and background workers.
 - I do not want route handlers, SQL, or settlement rules in this folder.
+- I keep `main.go` as the composition root and use the shared `httpapi.Application` and `httpapi.Router` types to wire dependencies and register method-aware routes without letting modules self-register.
 - The tradeoff is more package wiring, but startup remains explicit and testable.
 
 ## Logic Tracking

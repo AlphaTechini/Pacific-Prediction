@@ -8,6 +8,7 @@ I use this folder for player identity and profile rules only.
 
 - I want player identity separated from auth and balance because identity, session state, and spendable value are different concerns.
 - This package should own the canonical player record and profile-facing reads only.
+- The player read path depends on auth middleware for player context, which keeps session parsing out of profile logic.
 - The tradeoff is a narrower module, but it keeps future auth and payout changes from distorting player ownership.
 
 ## Logic Tracking
