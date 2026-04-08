@@ -12,11 +12,16 @@ I use this folder for market creation rules, market state transitions, and predi
 
 ## Logic Tracking
 
-- To find market lifecycle logic visit [README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/README.md).
+- To find market record and filter contracts visit [market.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/market.go).
+- To find market creation input contracts visit [create_input.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/create_input.go).
+- To find supported market validation models visit [validation_models.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/validation_models.go).
+- To find market service contracts visit [service.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/service.go).
+- To find market controller contracts visit [controller.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/controller.go).
 - To find settlement rule ownership visit [../settlement/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/README.md).
 - To find Pacifica market data sourcing visit [../pacifica/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/pacifica/README.md).
 
 ## Component And Connection Map
 
-- The market domain can be found in [README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/README.md).
+- The market contract boundary can be found in [service.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/service.go) and [controller.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/controller.go).
+- The supported market validation models can be found in [validation_models.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/validation_models.go).
 - The market persistence connection can be found in [../storage/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/storage/README.md).
