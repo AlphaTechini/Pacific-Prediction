@@ -1,0 +1,21 @@
+# backend/internal/config
+
+## Purpose
+
+I use this folder for runtime configuration loading and validation.
+
+## Architectural Decisions And Tradeoffs
+
+- I want all environment reads in one package so secrets and deploy-time values stay centralized.
+- This package should validate required config at startup instead of letting bad values fail later inside business logic.
+- The tradeoff is stricter startup behavior, but I prefer fast failure over hidden runtime drift.
+
+## Logic Tracking
+
+- To find configuration logic visit [README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/config/README.md).
+- To find deployment-related backend decisions visit [../../README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/README.md).
+
+## Component And Connection Map
+
+- The runtime configuration boundary can be found in [README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/config/README.md).
+- The environment-driven system design can be found in [../../../architecture.md](file:///C:/Hackathons/Pacific%20Prediction/architecture.md).

@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Market Details | Pacifica Pulse</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-error-container": "#ffdad6",
+                        "tertiary-container": "#fed639",
+                        "on-primary-container": "#006970",
+                        "on-background": "#e1e2e7",
+                        "outline": "#849495",
+                        "error": "#ffb4ab",
+                        "surface-container-lowest": "#0b0e11",
+                        "secondary-fixed-dim": "#c3c7cc",
+                        "surface-container-highest": "#323538",
+                        "primary-fixed": "#7df4ff",
+                        "secondary": "#c3c7cc",
+                        "on-surface": "#e1e2e7",
+                        "surface-container-high": "#272a2e",
+                        "primary-fixed-dim": "#00dbe9",
+                        "on-primary-fixed-variant": "#004f54",
+                        "on-error": "#690005",
+                        "on-secondary": "#2d3135",
+                        "error-container": "#93000a",
+                        "inverse-on-surface": "#2e3134",
+                        "secondary-container": "#43474c",
+                        "on-tertiary-fixed-variant": "#554500",
+                        "on-surface-variant": "#b9cacb",
+                        "on-secondary-fixed": "#181c20",
+                        "surface-tint": "#00dbe9",
+                        "tertiary": "#fff5de",
+                        "surface-container-low": "#191c1f",
+                        "on-primary": "#00363a",
+                        "surface-variant": "#323538",
+                        "on-tertiary": "#3b2f00",
+                        "secondary-fixed": "#e0e3e8",
+                        "background": "#111417",
+                        "inverse-surface": "#e1e2e7",
+                        "surface-dim": "#111417",
+                        "on-secondary-container": "#b2b5bb",
+                        "outline-variant": "#3b494b",
+                        "on-primary-fixed": "#002022",
+                        "on-secondary-fixed-variant": "#43474c",
+                        "primary": "#dbfcff",
+                        "tertiary-fixed-dim": "#eac324",
+                        "surface-bright": "#37393d",
+                        "on-tertiary-container": "#715d00",
+                        "inverse-primary": "#006970",
+                        "tertiary-fixed": "#ffe179",
+                        "surface-container": "#1d2023",
+                        "on-tertiary-fixed": "#231b00",
+                        "surface": "#111417",
+                        "primary-container": "#00f0ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(50, 53, 56, 0.6);
+            backdrop-filter: blur(20px);
+        }
+        .neon-glow-active {
+            box-shadow: 0px 0px 12px rgba(0, 219, 233, 0.3);
+        }
+        .text-mono {
+            font-variant-numeric: tabular-nums;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-[#111417] flex justify-between items-center px-6 py-4 w-full">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold tracking-tighter text-[#dbfcff] uppercase font-headline">Pacifica Pulse</span>
+<div class="hidden md:flex items-center gap-6">
+<a class="text-[#00F0FF] font-bold border-b-2 border-[#00F0FF] pb-1 font-headline tracking-tight hover:text-[#00F0FF] transition-colors duration-200" href="#">Markets</a>
+<a class="text-[#3b494b] font-medium font-headline tracking-tight hover:text-[#00F0FF] transition-colors duration-200" href="#">Liquidity</a>
+<a class="text-[#3b494b] font-medium font-headline tracking-tight hover:text-[#00F0FF] transition-colors duration-200" href="#">Portfolio</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden lg:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm">search</span>
+<input class="bg-surface-container-lowest border-none text-sm py-2 pl-10 pr-4 w-64 focus:ring-1 focus:ring-primary-container transition-all rounded-sm" placeholder="Search markets..." type="text"/>
+</div>
+<button class="material-symbols-outlined text-outline hover:text-primary transition-colors">notifications</button>
+<button class="material-symbols-outlined text-outline hover:text-primary transition-colors">settings</button>
+<button class="bg-gradient-to-br from-primary to-primary-container text-on-primary-fixed px-4 py-2 text-sm font-bold uppercase tracking-wider rounded-sm active:opacity-80 active:scale-[0.98] transition-all">
+                Connect Wallet
+            </button>
+</div>
+</nav>
+<main class="pt-24 pb-20 px-6 max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+<!-- Left Column: Market Intel & Content -->
+<div class="lg:col-span-8 space-y-6">
+<!-- 1. Market Header -->
+<header class="bg-surface-container-low p-6 rounded-sm border-l-4 border-primary-container">
+<div class="flex flex-wrap justify-between items-start gap-4 mb-4">
+<div class="space-y-1">
+<div class="flex items-center gap-3">
+<span class="bg-primary-container/10 text-primary-container px-2 py-0.5 text-[10px] font-bold tracking-widest uppercase rounded-sm border border-primary-container/20">Active</span>
+<span class="text-outline text-xs font-mono uppercase tracking-widest">Type: Funding-based</span>
+</div>
+<h1 class="text-2xl md:text-3xl font-bold font-headline leading-tight text-on-surface">
+                            Will BTC Funding Rate turn negative before UTC midnight?
+                        </h1>
+<p class="text-primary font-mono text-sm tracking-tight opacity-80">ASSET: BTC/USD PERPETUAL</p>
+</div>
+<div class="bg-surface-container p-3 rounded-sm border border-outline-variant/15 flex flex-col items-end">
+<span class="text-[10px] text-outline uppercase tracking-widest font-bold">Time Remaining</span>
+<span class="text-2xl font-mono font-bold text-primary-container">23:59:42</span>
+</div>
+</div>
+</header>
+<!-- 4. Live Signal Data Section -->
+<section class="grid grid-cols-2 md:grid-cols-4 gap-px bg-outline-variant/15 border border-outline-variant/15 rounded-sm overflow-hidden">
+<div class="bg-surface-container-low p-4">
+<p class="text-[10px] text-outline uppercase tracking-widest mb-1">Mark Price</p>
+<p class="text-xl font-mono font-semibold text-on-surface">$64,281.40</p>
+<p class="text-[10px] text-primary-container/70 font-mono mt-1">Live from Cluster-A</p>
+</div>
+<div class="bg-surface-container-low p-4">
+<p class="text-[10px] text-outline uppercase tracking-widest mb-1">Funding Rate</p>
+<p class="text-xl font-mono font-semibold text-tertiary-fixed-dim">+0.0210%</p>
+<div class="h-4 w-full mt-2">
+<img class="h-full w-full object-cover opacity-50" data-alt="minimalist cyan line chart showing small fluctuations on a dark grid background representing crypto funding rates" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbSUezyh8Rn9FboJWeEwsIkphkoJtCNtMFTVNaCqC3QY6eRIfxR_XoK6ev8zPWxXOhxyJk38kF0X-pFQy5794W4nP-yKRXJgoUgFaIiC9VIZstzzVCvKM_Im3ZCp8cQQo1xD0f2fjqHpG1bXx4sr1Zb4XJl0bem7dTFmnWxSbqdfdtpawGL0KxvSZ5krThsFUb2ovRQNfe7NgmLoJRYmiHbSedj1TaKsNBLyWHN8FCabWW7D7Ag--zKlRplyzuNFBsuqCnvcF3cRX_"/>
+</div>
+</div>
+<div class="bg-surface-container-low p-4">
+<p class="text-[10px] text-outline uppercase tracking-widest mb-1">Open Interest</p>
+<p class="text-xl font-mono font-semibold text-on-surface">$12.4B</p>
+<p class="text-[10px] text-outline-variant font-mono mt-1">24h Change: +1.2%</p>
+</div>
+<div class="bg-surface-container-low p-4">
+<p class="text-[10px] text-outline uppercase tracking-widest mb-1">24h Volume</p>
+<p class="text-xl font-mono font-semibold text-on-surface">$42.8B</p>
+<p class="text-[10px] text-outline-variant font-mono mt-1">Exchange Aggregate</p>
+</div>
+</section>
+<!-- 3. Settlement Logic Card -->
+<section class="bg-surface-container p-6 rounded-sm space-y-4">
+<div class="flex items-center gap-2 border-b border-outline-variant/15 pb-3">
+<span class="material-symbols-outlined text-primary-container text-lg">terminal</span>
+<h3 class="font-headline font-bold uppercase tracking-wider text-sm">Settlement Protocol</h3>
+</div>
+<div class="grid md:grid-cols-3 gap-6">
+<div class="md:col-span-2">
+<p class="text-on-surface-variant text-sm leading-relaxed">
+                            This market settles <span class="text-primary-container font-bold">YES</span> if the Bybit BTC funding rate is strictly less than <span class="text-on-surface font-mono">0.00%</span> at the target timestamp. Otherwise, it settles <span class="text-error font-bold">NO</span>.
+                        </p>
+</div>
+<div class="space-y-3">
+<div>
+<p class="text-[10px] text-outline uppercase tracking-widest font-bold">Source</p>
+<p class="text-xs font-mono text-on-surface">Bybit Perpetual Funding</p>
+</div>
+<div>
+<p class="text-[10px] text-outline uppercase tracking-widest font-bold">Threshold</p>
+<p class="text-xs font-mono text-on-surface">&lt; 0.0000%</p>
+</div>
+</div>
+</div>
+</section>
+<!-- 5. AI Insight Card -->
+<section class="glass-panel p-5 rounded-sm border border-primary-container/10 flex items-start gap-4">
+<div class="p-2 bg-primary-container/10 rounded-sm">
+<span class="material-symbols-outlined text-primary-container" data-weight="fill">psychology</span>
+</div>
+<div>
+<h4 class="text-xs font-bold uppercase tracking-widest text-primary-container mb-2">Pulse AI Intelligence</h4>
+<p class="text-sm text-on-surface-variant leading-relaxed">
+                        Volatility index indicates a <span class="text-on-surface font-bold">34% probability</span> of flip. Funding is currently trending flat. 
+                        <span class="block mt-1 text-primary-fixed-dim">Prediction feasibility: High.</span>
+</p>
+</div>
+</section>
+<!-- 6. Activity Feed -->
+<section class="space-y-4">
+<h3 class="font-headline font-bold uppercase tracking-widest text-xs flex items-center gap-2">
+<span class="w-1 h-3 bg-primary-container"></span>
+                    Market Activity
+                </h3>
+<div class="space-y-px bg-outline-variant/10 rounded-sm overflow-hidden">
+<div class="bg-surface-container-low p-4 flex justify-between items-center">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-xs text-outline">history</span>
+<span class="text-sm">Large position entered <span class="text-primary-container">YES</span></span>
+</div>
+<span class="text-xs font-mono text-outline">2m ago</span>
+</div>
+<div class="bg-surface-container-low p-4 flex justify-between items-center">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-xs text-outline">add_circle</span>
+<span class="text-sm text-on-surface-variant">Liquidity added to pool</span>
+</div>
+<span class="text-xs font-mono text-outline">14m ago</span>
+</div>
+<div class="bg-surface-container-low p-4 flex justify-between items-center">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-xs text-outline">rocket_launch</span>
+<span class="text-sm text-on-surface-variant">Signal market created</span>
+</div>
+<span class="text-xs font-mono text-outline">1h ago</span>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column: Action & Secondary -->
+<div class="lg:col-span-4 space-y-6">
+<!-- 2. Main Participation Panel -->
+<section class="bg-surface-container-high p-6 rounded-sm border border-outline-variant/20 neon-glow-active sticky top-24">
+<h2 class="text-xs font-bold uppercase tracking-widest text-outline mb-6">Trade Terminal</h2>
+<div class="grid grid-cols-2 gap-3 mb-6">
+<button class="flex flex-col items-center justify-center p-4 bg-surface-container border border-primary-container/30 hover:bg-primary-container/10 transition-all rounded-sm group">
+<span class="text-primary-container font-headline font-bold text-lg">YES</span>
+<span class="text-xs text-outline font-mono mt-1 group-hover:text-on-surface transition-colors">50.00%</span>
+</button>
+<button class="flex flex-col items-center justify-center p-4 bg-surface-container border border-error/30 hover:bg-error/10 transition-all rounded-sm group">
+<span class="text-error font-headline font-bold text-lg">NO</span>
+<span class="text-xs text-outline font-mono mt-1 group-hover:text-on-surface transition-colors">50.00%</span>
+</button>
+</div>
+<div class="space-y-4">
+<div class="space-y-2">
+<div class="flex justify-between items-center px-1">
+<label class="text-[10px] text-outline uppercase tracking-widest font-bold">Amount</label>
+<span class="text-[10px] text-outline uppercase font-mono">Bal: 1,240.50 USDC</span>
+</div>
+<div class="relative">
+<input class="w-full bg-surface-container-lowest border-none text-xl font-mono p-4 pr-16 focus:ring-0 focus:outline-none placeholder:text-outline-variant" placeholder="0.00" type="number"/>
+<span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-outline">USDC</span>
+<div class="absolute bottom-0 left-0 h-[2px] w-0 bg-primary-container transition-all duration-300 group-focus-within:w-full"></div>
+</div>
+</div>
+<div class="bg-surface-container p-4 rounded-sm space-y-3">
+<div class="flex justify-between items-center text-xs">
+<span class="text-outline">Estimated Payout</span>
+<span class="text-primary-container font-mono font-bold">$0.00</span>
+</div>
+<div class="flex justify-between items-center text-xs">
+<span class="text-outline">Potential Return</span>
+<span class="text-on-surface font-mono">100%</span>
+</div>
+<div class="pt-2 border-t border-outline-variant/15 flex justify-between items-center text-[10px]">
+<span class="text-outline-variant uppercase">Slippage Tolerance</span>
+<span class="text-on-surface font-mono">0.5%</span>
+</div>
+</div>
+<button class="w-full bg-gradient-to-r from-primary to-primary-container text-on-primary-fixed py-4 font-headline font-bold uppercase tracking-[0.2em] rounded-sm hover:opacity-90 active:scale-[0.99] transition-all">
+                        Place Trade
+                    </button>
+</div>
+</section>
+<!-- 7. Related Markets -->
+<section class="space-y-4">
+<h3 class="font-headline font-bold uppercase tracking-widest text-xs">Related Intelligence</h3>
+<div class="space-y-3">
+<a class="block bg-surface-container-low p-4 border-l-2 border-outline-variant hover:border-primary-container transition-all group" href="#">
+<p class="text-xs font-bold text-on-surface mb-1 group-hover:text-primary transition-colors">ETH Funding Flip</p>
+<div class="flex justify-between items-center">
+<span class="text-[10px] text-outline uppercase font-mono">Closing in 4h</span>
+<span class="text-xs font-mono text-primary-container">62% Probability</span>
+</div>
+</a>
+<a class="block bg-surface-container-low p-4 border-l-2 border-outline-variant hover:border-primary-container transition-all group" href="#">
+<p class="text-xs font-bold text-on-surface mb-1 group-hover:text-primary transition-colors">SOL OI Surge</p>
+<div class="flex justify-between items-center">
+<span class="text-[10px] text-outline uppercase font-mono">Closing in 12h</span>
+<span class="text-xs font-mono text-primary-container">18% Probability</span>
+</div>
+</a>
+</div>
+</section>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-[#0b0e11] w-full border-t border-[#3b494b]/15 mt-12">
+<div class="flex flex-col md:flex-row justify-between items-center px-8 py-12 max-w-full font-body text-xs tracking-wide">
+<div class="flex flex-col md:flex-row items-center gap-8 text-[#3b494b]">
+<span class="font-mono">© 2024 Pacifica Pulse. System Status: <span class="text-primary-container">Operational.</span></span>
+<div class="flex gap-6">
+<a class="hover:text-[#dbfcff] transition-all" href="#">Markets</a>
+<a class="hover:text-[#dbfcff] transition-all" href="#">Liquidity</a>
+<a class="hover:text-[#dbfcff] transition-all" href="#">Governance</a>
+<a class="hover:text-[#dbfcff] transition-all" href="#">Documentation</a>
+<a class="hover:text-[#dbfcff] transition-all" href="#">Terms</a>
+</div>
+</div>
+<div class="mt-6 md:mt-0 flex gap-4">
+<button class="material-symbols-outlined text-outline hover:text-primary transition-colors">public</button>
+<button class="material-symbols-outlined text-outline hover:text-primary transition-colors">chat</button>
+</div>
+</div>
+</footer>
+</body></html>

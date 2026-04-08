@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Intelligence Leaderboard | Pacifica Pulse</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-on-surface": "#2e3134",
+                        "tertiary": "#fff5de",
+                        "on-surface": "#e1e2e7",
+                        "secondary": "#c3c7cc",
+                        "primary-fixed-dim": "#00dbe9",
+                        "surface-container-low": "#191c1f",
+                        "surface-container-high": "#272a2e",
+                        "on-secondary-fixed": "#181c20",
+                        "on-primary-container": "#006970",
+                        "primary": "#dbfcff",
+                        "on-secondary-fixed-variant": "#43474c",
+                        "surface": "#111417",
+                        "error": "#ffb4ab",
+                        "surface-bright": "#37393d",
+                        "secondary-fixed-dim": "#c3c7cc",
+                        "inverse-surface": "#e1e2e7",
+                        "on-tertiary-fixed-variant": "#554500",
+                        "tertiary-container": "#fed639",
+                        "tertiary-fixed": "#ffe179",
+                        "error-container": "#93000a",
+                        "on-error-container": "#ffdad6",
+                        "surface-container-lowest": "#0b0e11",
+                        "background": "#111417",
+                        "surface-dim": "#111417",
+                        "primary-container": "#00f0ff",
+                        "surface-tint": "#00dbe9",
+                        "on-tertiary-fixed": "#231b00",
+                        "primary-fixed": "#7df4ff",
+                        "surface-variant": "#323538",
+                        "on-secondary-container": "#b2b5bb",
+                        "on-secondary": "#2d3135",
+                        "inverse-primary": "#006970",
+                        "surface-container-highest": "#323538",
+                        "on-error": "#690005",
+                        "on-background": "#e1e2e7",
+                        "on-primary-fixed-variant": "#004f54",
+                        "outline-variant": "#3b494b",
+                        "secondary-fixed": "#e0e3e8",
+                        "secondary-container": "#43474c",
+                        "tertiary-fixed-dim": "#eac324",
+                        "on-tertiary-container": "#715d00",
+                        "on-primary-fixed": "#002022",
+                        "on-primary": "#00363a",
+                        "outline": "#849495",
+                        "on-surface-variant": "#b9cacb",
+                        "surface-container": "#1d2023",
+                        "on-tertiary": "#3b2f00"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        body {
+            background-color: #111417;
+            color: #e1e2e7;
+            font-family: 'Inter', sans-serif;
+        }
+        .space-grotesk { font-family: 'Space Grotesk', sans-serif; }
+        .data-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+        .glass-card {
+            background: rgba(50, 53, 56, 0.6);
+            backdrop-filter: blur(20px);
+        }
+        .glow-primary {
+            box-shadow: 0px 0px 12px rgba(0, 219, 233, 0.15);
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-[#111417] h-16 flex justify-between items-center px-6 font-['Space_Grotesk'] tracking-tight">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold tracking-tighter text-[#00F0FF]">Pacifica Pulse</span>
+<div class="hidden md:flex gap-6 items-center">
+<a class="text-slate-400 font-medium hover:text-[#dbfcff] transition-colors duration-200 cursor-pointer active:opacity-80" href="#">Markets</a>
+<a class="text-slate-400 font-medium hover:text-[#dbfcff] transition-colors duration-200 cursor-pointer active:opacity-80" href="#">Portfolio</a>
+<a class="text-[#00F0FF] border-b-2 border-[#00F0FF] pb-1 cursor-pointer active:opacity-80" href="#">Leaderboard</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-slate-400 cursor-pointer hover:text-[#00F0FF]">notifications</span>
+<span class="material-symbols-outlined text-slate-400 cursor-pointer hover:text-[#00F0FF]">account_circle</span>
+</div>
+</nav>
+<!-- Content Canvas -->
+<main class="flex-grow pt-24 pb-16 px-6 max-w-7xl mx-auto w-full">
+<!-- Header -->
+<header class="mb-12">
+<h1 class="space-grotesk text-4xl font-bold tracking-tight mb-2 text-on-surface">Intelligence Leaderboard</h1>
+<p class="text-on-surface-variant font-light max-w-2xl">Visualizing high-fidelity market performance. Tracking the most precise operators within the Pacifica Pulse ecosystem.</p>
+</header>
+<!-- Ranking Tabs -->
+<div class="flex flex-wrap gap-2 mb-10 border-b border-outline-variant/15 pb-4">
+<button class="px-4 py-2 text-sm font-medium tracking-wide transition-colors text-primary border-b-2 border-primary-container">Top Predictors</button>
+<button class="px-4 py-2 text-sm font-medium tracking-wide transition-colors text-slate-400 hover:text-primary">Top Creators</button>
+<button class="px-4 py-2 text-sm font-medium tracking-wide transition-colors text-slate-400 hover:text-primary">Best Streaks</button>
+<button class="px-4 py-2 text-sm font-medium tracking-wide transition-colors text-slate-400 hover:text-primary">Most Active</button>
+</div>
+<!-- Featured Spotlight -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+<!-- Rank 2 -->
+<div class="order-2 md:order-1 glass-card p-6 border-t-2 border-slate-500/30 flex flex-col items-center text-center">
+<div class="relative mb-4">
+<img class="w-20 h-20 rounded-sm object-cover border border-outline-variant/30" data-alt="Portrait of a professional man in high-tech studio lighting with a neutral, focused expression" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCDBvOn56c338R5TQw_B-2EqllWk5s7Rcn2DCiucbkKHi0eC3Y-xv_xlsPKxofpnNmSMAZCk-Lzc1j5TY351gkqxzjRL0p5H8_9yWjenozC2G2Kon5mMsSxlzltuQ2HfI5V2QzK5ktEdJcq-oYHUaBfv1ywT5-dWVpybFP3oqBV5R_Zw-2VfrQle7olrsM06u1mo3A_LkeKk0aPY4M1nGrnVipXr844iw6fBRPJC914uTzVUHoo5mWgwjZsEHvZFcfiiccLcCx4iSw8"/>
+<span class="absolute -top-2 -right-2 bg-surface-container-highest px-2 py-1 text-[10px] font-bold space-grotesk border border-outline-variant/30">RANK 02</span>
+</div>
+<h3 class="space-grotesk text-lg font-bold">@AlphaQuant_9</h3>
+<div class="flex items-center gap-1 my-2 bg-primary-container/10 px-2 py-1 rounded-sm">
+<span class="material-symbols-outlined text-[14px] text-primary-container" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span class="text-[10px] font-bold uppercase tracking-widest text-primary-container">Verified Alpha</span>
+</div>
+<div class="mt-4 w-full grid grid-cols-2 gap-4 border-t border-outline-variant/10 pt-4">
+<div>
+<p class="text-[10px] text-slate-500 uppercase tracking-tighter">Win Rate</p>
+<p class="text-xl font-bold space-grotesk text-primary">91.4%</p>
+</div>
+<div>
+<p class="text-[10px] text-slate-500 uppercase tracking-tighter">Pulse Score</p>
+<p class="text-xl font-bold space-grotesk">1,842</p>
+</div>
+</div>
+</div>
+<!-- Rank 1 (Featured) -->
+<div class="order-1 md:order-2 glass-card p-8 border-t-4 border-primary-container glow-primary transform md:scale-105 flex flex-col items-center text-center relative z-10">
+<div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary-container text-on-primary-fixed px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] space-grotesk">
+                    Global Leader
+                </div>
+<div class="relative mb-6">
+<img class="w-24 h-24 rounded-sm object-cover border-2 border-primary-container/50" data-alt="Close-up of a sharp-featured woman with a professional cyber-intelligence aesthetic, cool blue rim lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBxOGqLaMRyz0yZG3taR4fs5MfisHzVgHDju6Z3hquKYpv0eyBbpFJ5vxs3CV9tteCL4BG-wRrlx3AelMBAo9s_7wsiXVYWeR7Yi3M_a_2-rNFhRuDgJJVNRSHUktAxsyKhveolIplcLnWqZCjDmgwjzvn2qlWiY6AvmmKCTWhaWt-Gs8Y8oObx0tzw_66RZFQ4B-aaOtwO6I-GtI4Z8mMInfMo1DQ5XC-GoyfjeR7RoHQIDLvRJ7VU18-6G19I7s0o40eD1rnMwwGH"/>
+<span class="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-primary-container px-3 py-1 text-xs font-bold space-grotesk text-on-primary-fixed">RANK 01</span>
+</div>
+<h3 class="space-grotesk text-2xl font-bold">@Nexus_Prime</h3>
+<div class="flex items-center gap-1 my-3 bg-primary-container/20 px-3 py-1.5 rounded-sm">
+<span class="material-symbols-outlined text-[16px] text-primary-container" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span class="text-[11px] font-bold uppercase tracking-widest text-primary-container">Verified Alpha</span>
+</div>
+<div class="mt-6 w-full grid grid-cols-2 gap-4 border-t border-outline-variant/20 pt-6">
+<div>
+<p class="text-[10px] text-slate-400 uppercase tracking-tighter">Win Rate</p>
+<p class="text-2xl font-bold space-grotesk text-primary">94.8%</p>
+</div>
+<div>
+<p class="text-[10px] text-slate-400 uppercase tracking-tighter">Pulse Score</p>
+<p class="text-2xl font-bold space-grotesk text-primary">2,491</p>
+</div>
+</div>
+</div>
+<!-- Rank 3 -->
+<div class="order-3 md:order-3 glass-card p-6 border-t-2 border-slate-500/30 flex flex-col items-center text-center">
+<div class="relative mb-4">
+<img class="w-20 h-20 rounded-sm object-cover border border-outline-variant/30" data-alt="Minimalist abstract avatar or high-contrast artistic portrait of a strategist in a dark professional setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDn4lGjiOm6RP7yN_yR6FaH5k-Yp35snbOQV2dImVFPmeUmIU_3VipGAkyuFmYUCcrevjxNG7e4vbrtLqYkmRf1ObOsjj7X_zS0xAojPR_gN5YuhyZXVuE4Nwv4y8NW6tRJDNQFzaPJUUYyf4HnjNcBSgQva_nm3bmC1C5QUpIfJtlDtagN-zcV9YagIm99i-n-mLJF0NOAwGzY3Tu_LM2W0pFR-AVmoJSxgQLX0gEvepW_FTNGA2uS4hWusl25dB8nZTVYRKPGDMwN"/>
+<span class="absolute -top-2 -right-2 bg-surface-container-highest px-2 py-1 text-[10px] font-bold space-grotesk border border-outline-variant/30">RANK 03</span>
+</div>
+<h3 class="space-grotesk text-lg font-bold">@Sovereign_0x</h3>
+<div class="flex items-center gap-1 my-2 bg-primary-container/10 px-2 py-1 rounded-sm">
+<span class="material-symbols-outlined text-[14px] text-primary-container" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span class="text-[10px] font-bold uppercase tracking-widest text-primary-container">Verified Alpha</span>
+</div>
+<div class="mt-4 w-full grid grid-cols-2 gap-4 border-t border-outline-variant/10 pt-4">
+<div>
+<p class="text-[10px] text-slate-500 uppercase tracking-tighter">Win Rate</p>
+<p class="text-xl font-bold space-grotesk text-primary">89.2%</p>
+</div>
+<div>
+<p class="text-[10px] text-slate-500 uppercase tracking-tighter">Pulse Score</p>
+<p class="text-xl font-bold space-grotesk">1,610</p>
+</div>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+<!-- Main Table Section -->
+<div class="lg:col-span-8">
+<div class="bg-surface-container-low overflow-hidden rounded-sm border border-outline-variant/10">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-high border-b border-outline-variant/20">
+<tr>
+<th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 space-grotesk">Rank</th>
+<th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 space-grotesk">Operator</th>
+<th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 space-grotesk text-right">Win Rate</th>
+<th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 space-grotesk text-right">Markets</th>
+<th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 space-grotesk text-center">Streak</th>
+<th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 space-grotesk text-right">Pulse</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10">
+<!-- Rank 4 -->
+<tr class="hover:bg-surface-container-highest/30 transition-colors cursor-pointer group">
+<td class="px-6 py-4 data-mono text-sm text-slate-400 group-hover:text-primary">04</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-sm bg-surface-container-highest border border-outline-variant/20 flex items-center justify-center">
+<span class="text-[10px] font-bold">VK</span>
+</div>
+<span class="text-sm font-medium">Vector_K</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right text-primary data-mono text-sm">88.5%</td>
+<td class="px-6 py-4 text-right text-slate-300 data-mono text-sm">1,240</td>
+<td class="px-6 py-4 text-center">
+<span class="px-2 py-0.5 bg-surface-container-highest text-[10px] font-bold rounded-sm border border-outline-variant/20">12🔥</span>
+</td>
+<td class="px-6 py-4 text-right font-bold space-grotesk text-sm">1,402</td>
+</tr>
+<!-- Rank 5 -->
+<tr class="hover:bg-surface-container-highest/30 transition-colors cursor-pointer group">
+<td class="px-6 py-4 data-mono text-sm text-slate-400 group-hover:text-primary">05</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-sm bg-surface-container-highest border border-outline-variant/20 flex items-center justify-center">
+<span class="text-[10px] font-bold">DS</span>
+</div>
+<span class="text-sm font-medium">DeepState_Trader</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right text-primary data-mono text-sm">87.1%</td>
+<td class="px-6 py-4 text-right text-slate-300 data-mono text-sm">952</td>
+<td class="px-6 py-4 text-center">
+<span class="px-2 py-0.5 bg-surface-container-highest text-[10px] font-bold rounded-sm border border-outline-variant/20">8🔥</span>
+</td>
+<td class="px-6 py-4 text-right font-bold space-grotesk text-sm">1,298</td>
+</tr>
+<!-- Rank 6 -->
+<tr class="hover:bg-surface-container-highest/30 transition-colors cursor-pointer group">
+<td class="px-6 py-4 data-mono text-sm text-slate-400 group-hover:text-primary">06</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-sm bg-surface-container-highest border border-outline-variant/20 flex items-center justify-center">
+<span class="text-[10px] font-bold">OR</span>
+</div>
+<span class="text-sm font-medium">Oracle_Redux</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right text-primary data-mono text-sm">86.4%</td>
+<td class="px-6 py-4 text-right text-slate-300 data-mono text-sm">2,104</td>
+<td class="px-6 py-4 text-center">
+<span class="px-2 py-0.5 bg-surface-container-highest text-[10px] font-bold rounded-sm border border-outline-variant/20">5🔥</span>
+</td>
+<td class="px-6 py-4 text-right font-bold space-grotesk text-sm">1,211</td>
+</tr>
+<!-- Rank 7 -->
+<tr class="hover:bg-surface-container-highest/30 transition-colors cursor-pointer group">
+<td class="px-6 py-4 data-mono text-sm text-slate-400 group-hover:text-primary">07</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-sm bg-surface-container-highest border border-outline-variant/20 flex items-center justify-center">
+<span class="text-[10px] font-bold">CT</span>
+</div>
+<span class="text-sm font-medium">CyberTheory</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right text-primary data-mono text-sm">85.9%</td>
+<td class="px-6 py-4 text-right text-slate-300 data-mono text-sm">1,012</td>
+<td class="px-6 py-4 text-center">
+<span class="px-2 py-0.5 bg-surface-container-highest text-[10px] font-bold rounded-sm border border-outline-variant/20">14🔥</span>
+</td>
+<td class="px-6 py-4 text-right font-bold space-grotesk text-sm">1,180</td>
+</tr>
+<!-- Rank 8 -->
+<tr class="hover:bg-surface-container-highest/30 transition-colors cursor-pointer group">
+<td class="px-6 py-4 data-mono text-sm text-slate-400 group-hover:text-primary">08</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-sm bg-surface-container-highest border border-outline-variant/20 flex items-center justify-center">
+<span class="text-[10px] font-bold">MK</span>
+</div>
+<span class="text-sm font-medium">Market_Karma</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right text-primary data-mono text-sm">85.2%</td>
+<td class="px-6 py-4 text-right text-slate-300 data-mono text-sm">540</td>
+<td class="px-6 py-4 text-center">
+<span class="px-2 py-0.5 bg-surface-container-highest text-[10px] font-bold rounded-sm border border-outline-variant/20">2🔥</span>
+</td>
+<td class="px-6 py-4 text-right font-bold space-grotesk text-sm">1,095</td>
+</tr>
+</tbody>
+</table>
+<div class="p-4 bg-surface-container-lowest text-center">
+<button class="text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">Load Detailed Registry</button>
+</div>
+</div>
+</div>
+<!-- Sidebar -->
+<div class="lg:col-span-4 flex flex-col gap-8">
+<!-- Recent Achievements -->
+<section class="bg-surface-container-low p-6 rounded-sm border border-outline-variant/10">
+<h4 class="space-grotesk text-sm font-bold uppercase tracking-widest mb-6 border-l-2 border-primary-container pl-3">Intelligence Feed</h4>
+<div class="flex flex-col gap-4">
+<div class="flex gap-4 items-start pb-4 border-b border-outline-variant/5">
+<span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings: 'FILL' 1;">workspace_premium</span>
+<div>
+<p class="text-xs leading-relaxed"><span class="font-bold text-on-surface">@AlphaQuant_9</span> reached a <span class="text-primary-container">15-day streak</span> on Commodity Markets.</p>
+<span class="text-[10px] text-slate-500 uppercase mt-1 block">2m ago</span>
+</div>
+</div>
+<div class="flex gap-4 items-start pb-4 border-b border-outline-variant/5">
+<span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings: 'FILL' 1;">add_chart</span>
+<div>
+<p class="text-xs leading-relaxed"><span class="font-bold text-on-surface">@Nexus_Prime</span> created a <span class="text-primary-container">500-participant</span> Geopolitical Event.</p>
+<span class="text-[10px] text-slate-500 uppercase mt-1 block">18m ago</span>
+</div>
+</div>
+<div class="flex gap-4 items-start">
+<span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings: 'FILL' 1;">rocket_launch</span>
+<div>
+<p class="text-xs leading-relaxed"><span class="font-bold text-on-surface">@Sovereign_0x</span> advanced to <span class="text-primary-container">Tier 5 Operator</span> status.</p>
+<span class="text-[10px] text-slate-500 uppercase mt-1 block">1h ago</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Global Stats -->
+<section class="bg-surface-container-low p-6 rounded-sm border border-outline-variant/10">
+<h4 class="space-grotesk text-sm font-bold uppercase tracking-widest mb-6 border-l-2 border-primary-container pl-3">Network Vitals</h4>
+<div class="space-y-6">
+<div>
+<div class="flex justify-between items-end mb-2">
+<span class="text-[10px] text-slate-500 uppercase tracking-tighter">Total Predictions</span>
+<span class="data-mono text-sm font-bold text-primary">1.28M</span>
+</div>
+<div class="h-1 bg-surface-container-highest w-full rounded-full">
+<div class="h-1 bg-primary-container w-[82%] rounded-full shadow-[0_0_8px_rgba(0,240,255,0.4)]"></div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-highest p-4 rounded-sm">
+<p class="text-[10px] text-slate-500 uppercase mb-1">Avg Win Rate</p>
+<p class="text-xl font-bold space-grotesk">64.2%</p>
+</div>
+<div class="bg-surface-container-highest p-4 rounded-sm">
+<p class="text-[10px] text-slate-500 uppercase mb-1">Active Labs</p>
+<p class="text-xl font-bold space-grotesk">412</p>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="w-full py-8 mt-auto bg-[#0b0e11] border-t border-[#3b494b]/15">
+<div class="flex flex-col md:flex-row justify-between items-center px-8 max-w-7xl mx-auto font-['Inter'] text-xs uppercase tracking-widest">
+<span class="text-slate-500 mb-4 md:mb-0">© 2024 Pacifica Pulse Intelligence</span>
+<div class="flex gap-8">
+<a class="text-slate-500 hover:text-[#00F0FF] transition-colors cursor-pointer" href="#">System Status</a>
+<a class="text-slate-500 hover:text-[#00F0FF] transition-colors cursor-pointer" href="#">Legal</a>
+<a class="text-slate-500 hover:text-[#00F0FF] transition-colors cursor-pointer" href="#">Privacy Policy</a>
+<a class="text-slate-500 hover:text-[#00F0FF] transition-colors cursor-pointer" href="#">Terms of Service</a>
+</div>
+</div>
+</footer>
+</body></html>
