@@ -48,7 +48,7 @@ func main() {
 	pacificaHTTPClient := &http.Client{
 		Timeout: cfg.Pacifica.MarketInfoHTTPTimeout,
 	}
-	marketInfoClient := pacifica.NewHTTPMarketInfoClient(
+	pacificaRESTClient := pacifica.NewHTTPRESTClient(
 		cfg.Pacifica.RestBaseURL,
 		pacificaHTTPClient,
 		cfg.Pacifica.MarketInfoCacheTTL,
@@ -61,8 +61,8 @@ func main() {
 	})
 	playerService := player.NewService(playerRepository)
 	balanceService := balance.NewService(balanceRepository)
-	marketValidator := market.NewValidationService(marketInfoClient)
-	marketService := market.NewService(marketRepository, marketValidator)
+	marketValidator := market.NewValidationService(pacificaRESTClient)
+	marketService := market.NewService(marketRepository, pacificaRESTClient, marketValidator)
 	marketController := market.NewController(marketService)
 	balanceController := balance.NewController(balanceService)
 	positionValidator := position.NewValidationService(position.ValidationDeps{
@@ -95,6 +95,7 @@ func main() {
 	app.RegisterRoute(http.MethodGet, "/api/v1/players/me/positions", requireSession(httpapi.NewListPlayerPositionsHandler(positionController)))
 	app.RegisterRoute(http.MethodPost, "/api/v1/markets", requireSession(httpapi.NewCreateMarketHandler(marketController)))
 	app.RegisterRoute(http.MethodGet, "/api/v1/markets", httpapi.NewListMarketsHandler(marketController))
+	app.RegisterRoute(http.MethodGet, "/api/v1/markets/context", httpapi.NewGetMarketCreateContextHandler(marketController))
 	app.RegisterRoute(http.MethodGet, "/api/v1/markets/{market_id}", httpapi.NewGetMarketDetailHandler(marketController))
 	app.RegisterRoute(http.MethodPost, "/api/v1/markets/{market_id}/positions", requireSession(httpapi.NewCreatePositionHandler(positionController)))
 

@@ -30,6 +30,10 @@ func (c *controller) GetByID(ctx context.Context, marketID domain.MarketID) (Rec
 	return c.service.GetByID(ctx, marketID)
 }
 
+func (c *controller) GetCreateContext(ctx context.Context) (CreateContext, error) {
+	return c.service.GetCreateContext(ctx)
+}
+
 func (c *controller) ValidateCreateInput(ctx context.Context, input CreateInput) error {
 	return c.service.ValidateCreateInput(ctx, input)
 }

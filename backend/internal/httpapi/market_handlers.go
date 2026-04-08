@@ -46,6 +46,39 @@ type listMarketsResponse struct {
 	Resolved []marketResponse `json:"resolved"`
 }
 
+type marketCreateContextResponse struct {
+	Symbols          []marketCreateContextSymbolResponse `json:"symbols"`
+	ValidationModels []marketValidationModelResponse     `json:"validation_models"`
+}
+
+type marketCreateContextSymbolResponse struct {
+	Symbol          string `json:"symbol"`
+	TickSize        string `json:"tick_size"`
+	MinTick         string `json:"min_tick"`
+	MaxTick         string `json:"max_tick"`
+	LotSize         string `json:"lot_size"`
+	MinOrderSize    string `json:"min_order_size"`
+	MaxOrderSize    string `json:"max_order_size"`
+	MaxLeverage     int    `json:"max_leverage"`
+	IsolatedOnly    bool   `json:"isolated_only"`
+	MarkPrice       string `json:"mark_price,omitempty"`
+	OraclePrice     string `json:"oracle_price,omitempty"`
+	FundingRate     string `json:"funding_rate,omitempty"`
+	NextFundingRate string `json:"next_funding_rate,omitempty"`
+	OpenInterest    string `json:"open_interest,omitempty"`
+	Volume24H       string `json:"volume_24h,omitempty"`
+	UpdatedAt       string `json:"updated_at,omitempty"`
+}
+
+type marketValidationModelResponse struct {
+	MarketType        string   `json:"market_type"`
+	SourceType        string   `json:"source_type"`
+	AllowedOperators  []string `json:"allowed_operators"`
+	RequiresThreshold bool     `json:"requires_threshold"`
+	RequiresInterval  bool     `json:"requires_interval"`
+	AllowedIntervals  []string `json:"allowed_intervals,omitempty"`
+}
+
 type marketResponse struct {
 	ID                string  `json:"id"`
 	Title             string  `json:"title"`
@@ -122,6 +155,18 @@ func NewListMarketsHandler(controller market.Controller) http.Handler {
 	})
 }
 
+func NewGetMarketCreateContextHandler(controller market.Controller) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		createContext, err := controller.GetCreateContext(r.Context())
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+
+		writeJSON(w, http.StatusOK, toMarketCreateContextResponse(createContext))
+	})
+}
+
 func NewGetMarketDetailHandler(controller market.Controller) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		marketID := r.PathValue("market_id")
@@ -138,6 +183,55 @@ func NewGetMarketDetailHandler(controller market.Controller) http.Handler {
 
 		writeJSON(w, http.StatusOK, toMarketResponse(record))
 	})
+}
+
+func toMarketCreateContextResponse(context market.CreateContext) marketCreateContextResponse {
+	symbols := make([]marketCreateContextSymbolResponse, 0, len(context.Symbols))
+	for _, item := range context.Symbols {
+		response := marketCreateContextSymbolResponse{
+			Symbol:          item.Symbol,
+			TickSize:        item.TickSize,
+			MinTick:         item.MinTick,
+			MaxTick:         item.MaxTick,
+			LotSize:         item.LotSize,
+			MinOrderSize:    item.MinOrderSize,
+			MaxOrderSize:    item.MaxOrderSize,
+			MaxLeverage:     item.MaxLeverage,
+			IsolatedOnly:    item.IsolatedOnly,
+			MarkPrice:       item.MarkPrice,
+			OraclePrice:     item.OraclePrice,
+			FundingRate:     item.FundingRate,
+			NextFundingRate: item.NextFundingRate,
+			OpenInterest:    item.OpenInterest,
+			Volume24H:       item.Volume24H,
+		}
+		if !item.UpdatedAt.IsZero() {
+			response.UpdatedAt = item.UpdatedAt.Format(time.RFC3339)
+		}
+		symbols = append(symbols, response)
+	}
+
+	models := make([]marketValidationModelResponse, 0, len(context.ValidationModels))
+	for _, item := range context.ValidationModels {
+		operators := make([]string, 0, len(item.AllowedOperators))
+		for _, operator := range item.AllowedOperators {
+			operators = append(operators, string(operator))
+		}
+
+		models = append(models, marketValidationModelResponse{
+			MarketType:        string(item.MarketType),
+			SourceType:        string(item.SourceType),
+			AllowedOperators:  operators,
+			RequiresThreshold: item.RequiresThreshold,
+			RequiresInterval:  item.RequiresInterval,
+			AllowedIntervals:  item.AllowedIntervals,
+		})
+	}
+
+	return marketCreateContextResponse{
+		Symbols:          symbols,
+		ValidationModels: models,
+	}
 }
 
 func toCreateMarketResponse(record market.Record) createMarketResponse {

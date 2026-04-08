@@ -6,18 +6,26 @@ import (
 	"strings"
 
 	"prediction/internal/domain"
+	"prediction/internal/pacifica"
 	"prediction/internal/storage"
 )
 
 type service struct {
-	marketRepository storage.MarketRepository
-	validator        Validator
+	marketRepository      storage.MarketRepository
+	createContextProvider CreateContextProvider
+	validator             Validator
 }
 
-func NewService(marketRepository storage.MarketRepository, validator Validator) Service {
+type CreateContextProvider interface {
+	ListMarketInfo(ctx context.Context) ([]pacifica.MarketInfo, error)
+	ListPrices(ctx context.Context, filter pacifica.PriceFilter) ([]pacifica.PriceSnapshot, error)
+}
+
+func NewService(marketRepository storage.MarketRepository, createContextProvider CreateContextProvider, validator Validator) Service {
 	return &service{
-		marketRepository: marketRepository,
-		validator:        validator,
+		marketRepository:      marketRepository,
+		createContextProvider: createContextProvider,
+		validator:             validator,
 	}
 }
 
@@ -107,6 +115,51 @@ func (s *service) GetByID(ctx context.Context, marketID domain.MarketID) (Record
 	}
 
 	return toRecord(item), nil
+}
+
+func (s *service) GetCreateContext(ctx context.Context) (CreateContext, error) {
+	marketInfoItems, err := s.createContextProvider.ListMarketInfo(ctx)
+	if err != nil {
+		return CreateContext{}, fmt.Errorf("list market info for create context: %w", err)
+	}
+
+	priceItems, err := s.createContextProvider.ListPrices(ctx, pacifica.PriceFilter{})
+	if err != nil {
+		return CreateContext{}, fmt.Errorf("list prices for create context: %w", err)
+	}
+
+	priceBySymbol := make(map[string]pacifica.PriceSnapshot, len(priceItems))
+	for _, item := range priceItems {
+		priceBySymbol[item.Symbol] = item
+	}
+
+	symbols := make([]CreateContextSymbol, 0, len(marketInfoItems))
+	for _, item := range marketInfoItems {
+		price := priceBySymbol[item.Symbol]
+		symbols = append(symbols, CreateContextSymbol{
+			Symbol:          item.Symbol,
+			TickSize:        item.TickSize,
+			MinTick:         item.MinTick,
+			MaxTick:         item.MaxTick,
+			LotSize:         item.LotSize,
+			MinOrderSize:    item.MinOrderSize,
+			MaxOrderSize:    item.MaxOrderSize,
+			MaxLeverage:     item.MaxLeverage,
+			IsolatedOnly:    item.IsolatedOnly,
+			MarkPrice:       price.MarkPrice,
+			OraclePrice:     price.OraclePrice,
+			FundingRate:     price.FundingRate,
+			NextFundingRate: price.NextFundingRate,
+			OpenInterest:    price.OpenInterest,
+			Volume24H:       price.Volume24H,
+			UpdatedAt:       price.Timestamp,
+		})
+	}
+
+	return CreateContext{
+		Symbols:          symbols,
+		ValidationModels: SupportedValidationModels(),
+	}, nil
 }
 
 func (s *service) ValidateCreateInput(ctx context.Context, input CreateInput) error {

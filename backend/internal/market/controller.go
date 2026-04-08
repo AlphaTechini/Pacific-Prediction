@@ -11,6 +11,7 @@ type Controller interface {
 	List(ctx context.Context, filter ListFilter) ([]Record, error)
 	ListCatalog(ctx context.Context, limitPerStatus int) (Catalog, error)
 	GetByID(ctx context.Context, marketID domain.MarketID) (Record, error)
+	GetCreateContext(ctx context.Context) (CreateContext, error)
 	ValidateCreateInput(ctx context.Context, input CreateInput) error
 	SupportedValidationModels() []ValidationModel
 }

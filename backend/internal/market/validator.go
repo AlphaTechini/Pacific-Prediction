@@ -11,7 +11,7 @@ import (
 )
 
 type SymbolProvider interface {
-	ListMarketInfo() ([]pacifica.MarketInfo, error)
+	ListMarketInfo(ctx context.Context) ([]pacifica.MarketInfo, error)
 }
 
 type Validator interface {
@@ -79,7 +79,7 @@ func (s *validationService) ValidateCreateInput(ctx context.Context, input Creat
 }
 
 func (s *validationService) validateSymbol(ctx context.Context, symbol string) error {
-	items, err := s.symbolProvider.ListMarketInfo()
+	items, err := s.symbolProvider.ListMarketInfo(ctx)
 	if err != nil {
 		return err
 	}

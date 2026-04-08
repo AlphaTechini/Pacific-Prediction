@@ -1,5 +1,14 @@
 package pacifica
 
+import (
+	"context"
+	"time"
+)
+
+type MarketInfoClient interface {
+	ListMarketInfo(ctx context.Context) ([]MarketInfo, error)
+}
+
 type MarketInfo struct {
 	Symbol          string
 	TickSize        string
@@ -12,9 +21,6 @@ type MarketInfo struct {
 	MaxOrderSize    string
 	FundingRate     string
 	NextFundingRate string
-	CreatedAt       string
-}
-
-type MarketInfoClient interface {
-	ListMarketInfo() ([]MarketInfo, error)
+	CreatedAt       time.Time
+	RawCreatedAtMS  int64
 }
