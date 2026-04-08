@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 )
@@ -32,7 +33,7 @@ func (r *Router) Handle(route Route) {
 		panic("httpapi route pattern is required")
 	}
 
-	r.mux.Handle(route.Pattern, methodHandler(route.Method, route.Handler))
+	r.mux.Handle(fmt.Sprintf("%s %s", route.Method, route.Pattern), route.Handler)
 }
 
 func (r *Router) HandleFunc(method, pattern string, handler http.HandlerFunc) {
@@ -51,16 +52,4 @@ func (r *Router) Register(routes ...Route) {
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	r.mux.ServeHTTP(w, req)
-}
-
-func methodHandler(method string, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		if req.Method != method {
-			w.Header().Set("Allow", method)
-			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-			return
-		}
-
-		next.ServeHTTP(w, req)
-	})
 }

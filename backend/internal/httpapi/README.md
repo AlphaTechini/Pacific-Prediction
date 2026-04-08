@@ -12,13 +12,14 @@ I use this folder for HTTP routing, request validation, response shaping, and tr
 - I let auth middleware resolve the session cookie into request context here so domain packages do not depend on HTTP cookie parsing.
 - Market creation uses the same thin-handler pattern, with request parsing and RFC3339 coercion in HTTP and domain validation/persistence in the market module.
 - Market listing returns grouped active and resolved catalogs for the default dashboard read path.
-- Market detail uses a path-based lookup under `/api/v1/markets/` because `http.ServeMux` does not support colon-style route params directly.
+- Market detail and position placement use Go's method-aware and path-aware `http.ServeMux` patterns so nested market routes stay explicit without adding a third-party router.
 - The tradeoff is an extra translation layer, but it gives me a cleaner contract and safer future changes.
 
 ## Logic Tracking
 
 - To find HTTP transport logic visit [README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/httpapi/README.md).
 - To find market domain logic visit [../market/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/README.md).
+- To find position domain logic visit [../position/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/position/README.md).
 - To find player and balance logic visit [../player/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/player/README.md).
 - To find the API process that owns route registration visit [../../cmd/api/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/cmd/api/README.md).
 

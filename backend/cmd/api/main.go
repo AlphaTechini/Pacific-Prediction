@@ -15,6 +15,7 @@ import (
 	"prediction/internal/market"
 	"prediction/internal/pacifica"
 	"prediction/internal/player"
+	"prediction/internal/position"
 	"prediction/internal/storage"
 )
 
@@ -43,6 +44,7 @@ func main() {
 	sessionRepository := storage.NewSessionPostgresRepository(db.Pool())
 	balanceRepository := storage.NewBalancePostgresRepository(db.Pool())
 	marketRepository := storage.NewMarketPostgresRepository(db.Pool())
+	positionRepository := storage.NewPositionPostgresRepository(db.Pool())
 	pacificaHTTPClient := &http.Client{
 		Timeout: cfg.Pacifica.MarketInfoHTTPTimeout,
 	}
@@ -61,27 +63,40 @@ func main() {
 	balanceService := balance.NewService(balanceRepository)
 	marketValidator := market.NewValidationService(marketInfoClient)
 	marketService := market.NewService(marketRepository, marketValidator)
+	marketController := market.NewController(marketService)
+	balanceController := balance.NewController(balanceService)
+	positionValidator := position.NewValidationService(position.ValidationDeps{
+		MarketController:  marketController,
+		BalanceController: balanceController,
+	})
+	positionService := position.NewService(position.ServiceDeps{
+		PositionRepository: positionRepository,
+		TxManager:          app.Dependencies.TxManager,
+		Validator:          positionValidator,
+	})
 
 	authController := auth.NewController(authService)
 	playerController := player.NewController(playerService)
-	balanceController := balance.NewController(balanceService)
-	marketController := market.NewController(marketService)
+	positionController := position.NewController(positionService)
 	cookieManager := auth.NewCookieManager(cfg.Auth)
 	requireSession := httpapi.NewRequireSessionMiddleware(authController, cookieManager)
 
 	app.WithControllers(httpapi.Controllers{
-		Auth:    authController,
-		Player:  playerController,
-		Balance: balanceController,
-		Market:  marketController,
+		Auth:     authController,
+		Player:   playerController,
+		Balance:  balanceController,
+		Market:   marketController,
+		Position: positionController,
 	})
 
 	app.RegisterRoute(http.MethodPost, "/api/v1/players/guest", httpapi.NewCreateGuestSessionHandler(authController, playerController, cookieManager))
 	app.RegisterRoute(http.MethodGet, "/api/v1/players/me", requireSession(httpapi.NewGetMeHandler(playerController)))
 	app.RegisterRoute(http.MethodGet, "/api/v1/players/me/balance", requireSession(httpapi.NewGetBalanceHandler(balanceController)))
+	app.RegisterRoute(http.MethodGet, "/api/v1/players/me/positions", requireSession(httpapi.NewListPlayerPositionsHandler(positionController)))
 	app.RegisterRoute(http.MethodPost, "/api/v1/markets", requireSession(httpapi.NewCreateMarketHandler(marketController)))
 	app.RegisterRoute(http.MethodGet, "/api/v1/markets", httpapi.NewListMarketsHandler(marketController))
-	app.RegisterRoute(http.MethodGet, "/api/v1/markets/", httpapi.NewGetMarketDetailHandler(marketController))
+	app.RegisterRoute(http.MethodGet, "/api/v1/markets/{market_id}", httpapi.NewGetMarketDetailHandler(marketController))
+	app.RegisterRoute(http.MethodPost, "/api/v1/markets/{market_id}/positions", requireSession(httpapi.NewCreatePositionHandler(positionController)))
 
 	server := &http.Server{
 		Addr:              cfg.AppAddr,

@@ -31,7 +31,14 @@ func (s *service) GetBalance(ctx context.Context, playerID domain.PlayerID) (Sna
 }
 
 func (s *service) LockStake(ctx context.Context, playerID domain.PlayerID, amount string) error {
-	return domain.NewValidationError("amount", "lock stake is not implemented yet", amount)
+	if _, err := s.balanceRepository.LockStake(ctx, storage.LockStakeInput{
+		PlayerID: playerID,
+		Amount:   amount,
+	}); err != nil {
+		return fmt.Errorf("lock stake: %w", err)
+	}
+
+	return nil
 }
 
 func (s *service) UnlockStake(ctx context.Context, playerID domain.PlayerID, amount string) error {

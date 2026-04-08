@@ -2,7 +2,6 @@ package httpapi
 
 import (
 	"net/http"
-	"strings"
 	"time"
 
 	"prediction/internal/auth"
@@ -125,10 +124,8 @@ func NewListMarketsHandler(controller market.Controller) http.Handler {
 
 func NewGetMarketDetailHandler(controller market.Controller) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		const prefix = "/api/v1/markets/"
-
-		marketID := strings.TrimSpace(strings.TrimPrefix(r.URL.Path, prefix))
-		if marketID == "" || strings.Contains(marketID, "/") {
+		marketID := r.PathValue("market_id")
+		if marketID == "" {
 			writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid_market_id"})
 			return
 		}

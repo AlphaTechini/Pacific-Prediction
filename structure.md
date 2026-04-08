@@ -34,6 +34,8 @@ Pacific Prediction/
 ¦   ¦   ¦   +-- README.md
 ¦   ¦   +-- pacifica/
 ¦   ¦   ¦   +-- README.md
+¦   ¦   +-- position/
+¦   ¦   ¦   +-- README.md
 ¦   ¦   +-- player/
 ¦   ¦   ¦   +-- README.md
 ¦   ¦   +-- realtime/
@@ -74,6 +76,7 @@ Pacific Prediction/
 - To find HTTP transport logic visit [backend/internal/httpapi/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/httpapi/README.md).
 - To find market lifecycle logic visit [backend/internal/market/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/README.md).
 - To find Pacifica integration logic visit [backend/internal/pacifica/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/pacifica/README.md).
+- To find position lifecycle logic visit [backend/internal/position/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/position/README.md).
 - To find player identity logic visit [backend/internal/player/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/player/README.md).
 - To find realtime delivery logic visit [backend/internal/realtime/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/realtime/README.md).
 - To find settlement logic visit [backend/internal/settlement/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/README.md).
@@ -94,6 +97,7 @@ Pacific Prediction/
 - [backend/internal/httpapi/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/httpapi/README.md)
 - [backend/internal/market/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/README.md)
 - [backend/internal/pacifica/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/pacifica/README.md)
+- [backend/internal/position/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/position/README.md)
 - [backend/internal/player/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/player/README.md)
 - [backend/internal/realtime/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/realtime/README.md)
 - [backend/internal/settlement/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/README.md)
@@ -112,6 +116,7 @@ I am keeping the backend split simple:
 - `internal/httpapi` will own HTTP handlers, request validation, and response shaping.
 - `internal/market` will own market creation, listing, and resolution rules at the domain level.
 - `internal/pacifica` will isolate all Pacifica REST and WebSocket integration.
+- `internal/position` will own YES or NO placement contracts and player position history rules.
 - `internal/player` will own player identity and profile rules.
 - `internal/realtime` will push live updates from backend state to the client-facing stream.
 - `internal/settlement` will own expiry scanning and deterministic resolution.
