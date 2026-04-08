@@ -26,7 +26,7 @@
 - Backend stack: Go.
 - Database: PostgreSQL.
 - Redis is not part of v1.
-- Pacifica integration is read-only in v1 through REST and WebSocket.
+- Pacifica integration is read-only in v1 and should stay REST-first by default.
 - The frontend should talk only to our backend, not directly to Pacifica.
 - Player identity in v1 uses guest accounts with backend-issued sessions.
 - Balances must be server-authoritative.
@@ -38,6 +38,11 @@
 - Candle markets settle from mark-price candles.
 - Funding markets settle from funding records.
 - I should prefer a final authoritative REST fetch for settlement instead of relying only on in-memory live stream data.
+- Price-threshold settlement should use one batched REST price request at expiry time and only settle when Pacifica's returned timestamp is at or after the market expiry.
+- If the returned price snapshot still predates expiry, the settlement worker should retry briefly instead of guessing.
+- Candle markets should fetch historical mark-price candles on demand at resolution time rather than polling continuously.
+- Funding markets should fetch historical funding records on demand at resolution time rather than polling continuously.
+- Always-on Pacifica WebSocket subscriptions are not the default settlement path in v1.
 
 ## Deferred Roadmap
 
@@ -64,4 +69,14 @@
 - The HTTP wiring pattern uses an `httpapi.Application` container for shared dependencies and controller references, plus an `httpapi.Router` helper that main.go uses to register method-aware routes explicitly.
 - Guest sessions use opaque random tokens stored only in secure cookies, while PostgreSQL stores the token hash and the initial virtual balance is provisioned during guest creation from environment-backed config.
 - Market validation should use Pacifica `/api/v1/info` metadata through the pacifica module, with backend-owned caching instead of a hardcoded symbol list.
+
+## Settlement Contract Decisions
+
+- T6.1 excludes payout application and defers payout concerns to T6.7.
+- Settlement keeps one shared orchestration service and one worker contract.
+- Price, candle, and funding settlement use separate resolver interfaces.
+- Price, candle, and funding settlement use separate output schemas because their settlement truth differs by source and timestamp semantics.
+- Any shared settlement audit shape should exist only after resolver-specific outputs are mapped into persistence-friendly fields.
+- The expiry scanner uses the market repository to discover due active markets by `expiry_time` and hands off only orchestration-level attempts until per-market settlement logic is implemented.
+- Price settlement should group due markets into batched Pacifica price fetches instead of creating per-market cron jobs.
 

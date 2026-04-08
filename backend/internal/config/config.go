@@ -17,6 +17,7 @@ type Config struct {
 	Auth          AuthConfig
 	Balance       BalanceConfig
 	Pacifica      PacificaConfig
+	Settlement    SettlementConfig
 }
 
 type AuthConfig struct {
@@ -38,6 +39,11 @@ type PacificaConfig struct {
 	MarketInfoHTTPTimeout time.Duration
 }
 
+type SettlementConfig struct {
+	ScanInterval  time.Duration
+	ScanBatchSize int
+}
+
 func Load() (Config, error) {
 	authConfig, err := loadAuthConfig()
 	if err != nil {
@@ -54,6 +60,11 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	settlementConfig, err := loadSettlementConfig()
+	if err != nil {
+		return Config{}, err
+	}
+
 	cfg := Config{
 		AppEnv:        getEnv("APP_ENV", "development"),
 		AppAddr:       getEnv("APP_ADDR", ":8080"),
@@ -62,6 +73,7 @@ func Load() (Config, error) {
 		Auth:          authConfig,
 		Balance:       balanceConfig,
 		Pacifica:      pacificaConfig,
+		Settlement:    settlementConfig,
 	}
 
 	if cfg.DatabaseURL == "" {
@@ -175,6 +187,39 @@ func loadPacificaConfig() (PacificaConfig, error) {
 		RestBaseURL:           restBaseURL,
 		MarketInfoCacheTTL:    cacheTTL,
 		MarketInfoHTTPTimeout: httpTimeout,
+	}, nil
+}
+
+func loadSettlementConfig() (SettlementConfig, error) {
+	scanIntervalRaw := os.Getenv("SETTLEMENT_SCAN_INTERVAL")
+	if scanIntervalRaw == "" {
+		return SettlementConfig{}, fmt.Errorf("SETTLEMENT_SCAN_INTERVAL is required")
+	}
+
+	scanInterval, err := time.ParseDuration(scanIntervalRaw)
+	if err != nil {
+		return SettlementConfig{}, fmt.Errorf("parse SETTLEMENT_SCAN_INTERVAL: %w", err)
+	}
+	if scanInterval <= 0 {
+		return SettlementConfig{}, fmt.Errorf("SETTLEMENT_SCAN_INTERVAL must be greater than zero")
+	}
+
+	scanBatchSizeRaw := os.Getenv("SETTLEMENT_SCAN_BATCH_SIZE")
+	if scanBatchSizeRaw == "" {
+		return SettlementConfig{}, fmt.Errorf("SETTLEMENT_SCAN_BATCH_SIZE is required")
+	}
+
+	scanBatchSize, err := strconv.Atoi(scanBatchSizeRaw)
+	if err != nil {
+		return SettlementConfig{}, fmt.Errorf("parse SETTLEMENT_SCAN_BATCH_SIZE: %w", err)
+	}
+	if scanBatchSize <= 0 {
+		return SettlementConfig{}, fmt.Errorf("SETTLEMENT_SCAN_BATCH_SIZE must be greater than zero")
+	}
+
+	return SettlementConfig{
+		ScanInterval:  scanInterval,
+		ScanBatchSize: scanBatchSize,
 	}, nil
 }
 

@@ -16,6 +16,7 @@ import (
 	"prediction/internal/pacifica"
 	"prediction/internal/player"
 	"prediction/internal/position"
+	"prediction/internal/settlement"
 	"prediction/internal/storage"
 )
 
@@ -74,6 +75,15 @@ func main() {
 		TxManager:          app.Dependencies.TxManager,
 		Validator:          positionValidator,
 	})
+	settlementService := settlement.NewService(settlement.ServiceDeps{
+		MarketRepository: marketRepository,
+	})
+	settlementWorker := settlement.NewWorker(settlement.WorkerDeps{
+		Logger:        log.Default(),
+		Service:       settlementService,
+		ScanInterval:  cfg.Settlement.ScanInterval,
+		ScanBatchSize: cfg.Settlement.ScanBatchSize,
+	})
 
 	authController := auth.NewController(authService)
 	playerController := player.NewController(playerService)
@@ -109,6 +119,11 @@ func main() {
 	go func() {
 		log.Printf("api listening on %s", cfg.AppAddr)
 		errCh <- server.ListenAndServe()
+	}()
+	go func() {
+		if err := settlementWorker.Run(ctx); err != nil {
+			errCh <- err
+		}
 	}()
 
 	select {

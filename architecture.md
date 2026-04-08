@@ -150,13 +150,13 @@ I only want to carry forward the deferred items that are still relatively safe t
 - Backend: Go
 - Database: PostgreSQL
 - Realtime transport to UI: server-sent events or WebSocket from our backend
-- Pacifica integration: REST + WebSocket, read-only
+- Pacifica integration: REST-first, read-only, with WebSocket kept optional for later targeted use
 
 ### Why I am choosing Go for the backend
 
 Go is the best fit for the hard parts of v1:
 
-- long-lived Pacifica WebSocket connections
+- timed settlement jobs and retry windows
 - deterministic settlement jobs
 - typed data models
 - a clean single-service deployment path
@@ -201,7 +201,7 @@ than on sharing types with the frontend.
 I want the backend in the middle because it gives me:
 
 - one place to manage Pacifica rate limits
-- one place to maintain WebSocket heartbeats and reconnect logic
+- one place to decide when faster Pacifica reads are actually worth the cost
 - one settlement source of truth
 - simpler frontend code
 - cleaner future extension into auth or rewards
@@ -376,7 +376,8 @@ I will not settle any market using vague wording like:
 
 Settlement rule:
 
-- fetch the first mark-price value at or immediately after expiry using the selected Pacifica source path
+- fetch Pacifica mark-price data in batched REST requests at expiry time
+- settle from the first Pacifica price snapshot whose own timestamp is at or after expiry
 - compare it against the market threshold
 
 Result examples:
@@ -384,12 +385,28 @@ Result examples:
 - `mark_price > threshold` => YES
 - `mark_price <= threshold` => NO
 
+Why I am choosing this rule in v1:
+
+- it avoids depending on always-on WebSocket subscriptions for settlement
+- it lets one REST request cover all symbols instead of one request per market
+- it keeps the settlement boundary auditable because I can persist the exact Pacifica timestamp that qualified
+
+Tradeoff:
+
+- the first request sent at expiry is not automatically valid
+- I must inspect the returned Pacifica timestamp and retry briefly if the snapshot still predates expiry
+
 #### Candle outcome markets
 
 Settlement rule:
 
 - resolve against the close of the selected mark-price candle interval
 - compare candle close against candle open
+
+Fetch strategy:
+
+- fetch historical mark-price candles on demand at resolution time
+- do not continuously poll prices for candle settlement in v1
 
 Result examples:
 
@@ -405,15 +422,30 @@ Settlement rule:
 - resolve using the first funding record whose settlement timestamp is at or after expiry
 - compare the final funding value with the threshold or sign rule
 
+Fetch strategy:
+
+- fetch funding history on demand near resolution time
+- do not continuously poll funding data in v1
+
 ### Settlement execution model
 
 I will use a backend worker that:
 
 - polls for markets approaching expiry
 - fetches authoritative Pacifica settlement data
+- groups due price markets so one batched REST price request can serve multiple expiries or symbols
+- validates the Pacifica response timestamp before settling a price market
+- retries briefly instead of guessing if the returned price snapshot still predates expiry
 - computes result
 - updates balances and positions in one database transaction
 - records the raw settlement value and source used
+
+### Market-data fetch cadence by market type
+
+- price threshold markets are the only v1 market type that may need short near-expiry retries
+- candle outcome markets should use historical mark-price candles on demand instead of frequent polling
+- funding markets should use historical funding records on demand instead of frequent polling
+- periodic broad polling such as every 30 minutes is useful for display analytics, not for point-in-time price-threshold settlement
 
 ### Why I am not settling from only live WebSocket memory
 
@@ -424,6 +456,12 @@ I want a final fetch step because it gives me:
 - cleaner recovery after reconnects
 - more deterministic settlement
 - better auditability
+
+I am also not making always-on Pacifica WebSocket subscriptions the default settlement path in v1 because:
+
+- batched REST reads are easier to reason about under a small hackathon workload
+- the price endpoint already returns all symbols, which reduces request fan-out
+- candle and funding markets do not benefit enough from continuous live subscriptions to justify the extra complexity
 
 ---
 

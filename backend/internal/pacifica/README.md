@@ -10,6 +10,8 @@ I use this folder to isolate every Pacifica REST and WebSocket integration behin
 - This package should own subscription management, heartbeat handling, reconnect behavior, and settlement lookups.
 - Read-only REST fetches for metadata, prices, mark-price candles, and funding history should all live here so settlement and validation code do not depend on raw vendor payloads.
 - Market metadata should be fetched here and cached aggressively so symbol validation can stay dynamic without making market creation depend on a fresh Pacifica call every time.
+- In v1, I should prefer REST for settlement and only keep WebSocket as an optional targeted acceleration path rather than an always-on requirement.
+- The prices endpoint returns all symbols in one response, so price-threshold settlement should prefer batched reads over per-symbol requests.
 - The tradeoff is a translation boundary, but it protects the rest of the app from vendor-specific transport details.
 
 ## Logic Tracking

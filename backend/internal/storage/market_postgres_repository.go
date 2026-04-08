@@ -151,7 +151,52 @@ LIMIT $2;
 }
 
 func (r *MarketPostgresRepository) ListExpiringBefore(ctx context.Context, before time.Time, limit int) ([]Market, error) {
-	return nil, fmt.Errorf("list expiring markets is not implemented yet")
+	const query = `
+SELECT
+    id,
+    title,
+    symbol,
+    market_type,
+    condition_operator,
+    COALESCE(threshold_value::text, ''),
+    source_type,
+    COALESCE(source_interval, ''),
+    COALESCE(reference_value::text, ''),
+    expiry_time,
+    status,
+    COALESCE(result, ''),
+    COALESCE(settlement_value::text, ''),
+    resolved_at,
+    COALESCE(resolution_reason, ''),
+    created_by_player_id,
+    created_at
+FROM markets
+WHERE status = $1
+  AND expiry_time <= $2
+ORDER BY expiry_time ASC
+LIMIT $3;
+`
+
+	rows, err := r.queryer.Query(ctx, query, string(domain.MarketStatusActive), before.UTC(), limit)
+	if err != nil {
+		return nil, fmt.Errorf("list expiring markets: %w", err)
+	}
+	defer rows.Close()
+
+	var markets []Market
+	for rows.Next() {
+		market, err := scanMarket(rows)
+		if err != nil {
+			return nil, fmt.Errorf("list expiring markets: %w", err)
+		}
+		markets = append(markets, market)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("list expiring markets: %w", err)
+	}
+
+	return markets, nil
 }
 
 func (r *MarketPostgresRepository) UpdateSettlement(ctx context.Context, input UpdateMarketSettlementInput) (Market, error) {

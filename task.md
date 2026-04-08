@@ -828,7 +828,7 @@ Goal:
 
 Status:
 
-- `todo`
+- `done`
 
 Owner:
 
@@ -848,16 +848,23 @@ Deliverables:
 - settlement schemas
 - settlement service interface
 - worker interface
+- separate resolver interfaces for price, candle, and funding markets
+- separate output schemas for price, candle, and funding resolution results
+- explicit contract boundary that excludes payout application from T6.1
 
 Acceptance criteria:
 
 - settlement contracts cover price, candle, and funding resolution paths
+- price, candle, and funding resolution are not forced into one generic resolver contract
+- price, candle, and funding resolution outputs are modeled separately to preserve their real source differences
+- candle settlement contracts can represent candle-specific values without squeezing them into a single-value settlement shape
+- payout application concerns remain outside T6.1 and are deferred to T6.7
 
 ### T6.2 Create Settlement Migrations
 
 Status:
 
-- `todo`
+- `done`
 
 Owner:
 
@@ -879,7 +886,7 @@ Acceptance criteria:
 
 Status:
 
-- `todo`
+- `done`
 
 Owner:
 
