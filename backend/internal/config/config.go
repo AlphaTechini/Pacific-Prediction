@@ -54,7 +54,8 @@ type RealtimeConfig struct {
 }
 
 func Load() (Config, error) {
-	if err := loadDotEnv(); err != nil {
+	dotEnvMeta, err := loadDotEnv()
+	if err != nil {
 		return Config{}, err
 	}
 
@@ -87,7 +88,7 @@ func Load() (Config, error) {
 		AppEnv:        getEnv("APP_ENV", "development"),
 		AppAddr:       getEnv("APP_ADDR", ":8080"),
 		DatabaseURL:   os.Getenv("DATABASE_URL"),
-		MigrationsDir: getEnv("MIGRATIONS_DIR", defaultMigrationsDir()),
+		MigrationsDir: resolveMigrationsDir(getEnv("MIGRATIONS_DIR", defaultMigrationsDir()), dotEnvMeta),
 		Auth:          authConfig,
 		Balance:       balanceConfig,
 		Pacifica:      pacificaConfig,
@@ -102,14 +103,23 @@ func Load() (Config, error) {
 	return cfg, nil
 }
 
-func loadDotEnv() error {
+type dotEnvLoadResult struct {
+	LoadedPaths []string
+}
+
+func loadDotEnv() (dotEnvLoadResult, error) {
+	result := dotEnvLoadResult{}
 	for _, candidate := range dotEnvCandidates() {
 		if err := loadDotEnvFile(candidate); err != nil {
-			return err
+			return dotEnvLoadResult{}, err
+		}
+
+		if fileExists(candidate) {
+			result.LoadedPaths = append(result.LoadedPaths, filepath.Clean(candidate))
 		}
 	}
 
-	return nil
+	return result, nil
 }
 
 func dotEnvCandidates() []string {
@@ -205,6 +215,29 @@ func defaultMigrationsDir() string {
 	return "./migrations"
 }
 
+func resolveMigrationsDir(value string, dotEnvMeta dotEnvLoadResult) string {
+	if value == "" {
+		return value
+	}
+
+	if filepath.IsAbs(value) {
+		return value
+	}
+
+	if directoryExists(value) {
+		return value
+	}
+
+	for _, loadedPath := range dotEnvMeta.LoadedPaths {
+		resolved := filepath.Join(filepath.Dir(loadedPath), value)
+		if directoryExists(resolved) {
+			return resolved
+		}
+	}
+
+	return value
+}
+
 func directoryExists(path string) bool {
 	info, err := os.Stat(path)
 	if err != nil {
@@ -212,6 +245,15 @@ func directoryExists(path string) bool {
 	}
 
 	return info.IsDir()
+}
+
+func fileExists(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+
+	return !info.IsDir()
 }
 
 func loadAuthConfig() (AuthConfig, error) {
