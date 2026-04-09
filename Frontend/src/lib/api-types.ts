@@ -101,3 +101,65 @@ export interface CreatePositionRequest {
 }
 
 export interface CreatePositionResponse extends PositionResponse {}
+
+export interface LeaderboardOverviewResponse {
+	total_predictions: number;
+	resolved_predictions: number;
+	active_predictors: number;
+	active_creators: number;
+	average_win_rate: string;
+}
+
+export interface PredictorLeaderboardEntryResponse {
+	rank: number;
+	player_id: string;
+	display_name: string;
+	resolved_positions: number;
+	won_positions: number;
+	lost_positions: number;
+	win_rate: string;
+	net_profit: string;
+	total_staked: string;
+}
+
+export interface CreatorLeaderboardEntryResponse {
+	rank: number;
+	player_id: string;
+	display_name: string;
+	created_markets: number;
+	resolved_markets: number;
+	total_positions: number;
+	unique_participants: number;
+	total_staked_on_markets: string;
+}
+
+export interface StreakLeaderboardEntryResponse {
+	rank: number;
+	player_id: string;
+	display_name: string;
+	current_win_streak: number;
+	longest_win_streak: number;
+	resolved_positions: number;
+	win_rate: string;
+	net_profit: string;
+}
+
+export interface ActivityLeaderboardEntryResponse {
+	rank: number;
+	player_id: string;
+	display_name: string;
+	total_positions: number;
+	open_positions: number;
+	resolved_positions: number;
+	created_markets: number;
+	total_staked: string;
+}
+
+export interface LeaderboardResponse {
+	generated_at: string;
+	overview: LeaderboardOverviewResponse;
+	top_predictors: PredictorLeaderboardEntryResponse[];
+	top_creators: CreatorLeaderboardEntryResponse[];
+	best_streaks: StreakLeaderboardEntryResponse[];
+	most_active: ActivityLeaderboardEntryResponse[];
+}

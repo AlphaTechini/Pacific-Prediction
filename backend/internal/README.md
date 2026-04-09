@@ -17,6 +17,7 @@ I use `internal` to hold the actual application logic and prevent external packa
 - To find configuration logic visit [config/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/config/README.md).
 - To find shared domain vocabulary visit [domain/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/domain/README.md).
 - To find HTTP transport logic visit [httpapi/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/httpapi/README.md).
+- To find leaderboard ranking logic visit [leaderboard/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/leaderboard/README.md).
 - To find market lifecycle logic visit [market/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/README.md).
 - To find Pacifica integration logic visit [pacifica/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/pacifica/README.md).
 - To find position lifecycle logic visit [position/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/position/README.md).
@@ -30,6 +31,7 @@ I use `internal` to hold the actual application logic and prevent external packa
 - The auth system boundary can be found in [auth/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/auth/README.md).
 - The balance system boundary can be found in [balance/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/balance/README.md).
 - The shared backend domain vocabulary can be found in [domain/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/domain/README.md).
+- The leaderboard ranking boundary can be found in [leaderboard/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/leaderboard/README.md).
 - The Pacifica system connection can be found in [pacifica/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/pacifica/README.md).
 - The position system boundary can be found in [position/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/position/README.md).
 - The PostgreSQL connection boundary can be found in [storage/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/storage/README.md).

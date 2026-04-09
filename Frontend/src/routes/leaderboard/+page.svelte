@@ -1,174 +1,527 @@
 <script lang="ts">
-  import TopNavBar from '$lib/components/TopNavBar.svelte';
+	import type {
+		ActivityLeaderboardEntryResponse,
+		CreatorLeaderboardEntryResponse,
+		PredictorLeaderboardEntryResponse,
+		StreakLeaderboardEntryResponse
+	} from '$lib/api-types';
+	import TopNavBar from '$lib/components/TopNavBar.svelte';
 
-  type LeaderTab = 'Top Predictors' | 'Top Creators' | 'Best Streaks' | 'Most Active';
-  let activeTab = $state<LeaderTab>('Top Predictors');
+	import type { PageData } from './$types';
 
-  const podium = [
-    { rank: 'RANK 02', name: '@AlphaQuant_9', winRate: '91.4%', score: '1,842', order: 'order-2 md:order-1', scale: '' },
-    { rank: 'RANK 01', name: '@Nexus_Prime', winRate: '94.8%', score: '2,491', order: 'order-1 md:order-2', scale: 'md:scale-105', leader: true },
-    { rank: 'RANK 03', name: '@Sovereign_0x', winRate: '89.2%', score: '1,610', order: 'order-3 md:order-3', scale: '' }
-  ];
+	type LeaderTab = 'top_predictors' | 'top_creators' | 'best_streaks' | 'most_active';
 
-  const tableRows = [
-    { rank: '04', initials: 'VK', name: 'Vector_K', winRate: '88.5%', markets: '1,240', streak: '12🔥', pulse: '1,402' },
-    { rank: '05', initials: 'DS', name: 'DeepState_Trader', winRate: '87.1%', markets: '952', streak: '8🔥', pulse: '1,298' },
-    { rank: '06', initials: 'OR', name: 'Oracle_Redux', winRate: '86.4%', markets: '2,104', streak: '5🔥', pulse: '1,211' },
-    { rank: '07', initials: 'CT', name: 'CyberTheory', winRate: '85.9%', markets: '1,012', streak: '14🔥', pulse: '1,180' },
-    { rank: '08', initials: 'MK', name: 'Market_Karma', winRate: '85.2%', markets: '540', streak: '2🔥', pulse: '1,095' }
-  ];
+	interface ViewMetric {
+		label: string;
+		value: string;
+	}
 
-  const feed = [
-    { icon: 'workspace_premium', text: '@AlphaQuant_9 reached a', highlight: '15-day streak', rest: 'on Commodity Markets.', time: '2m ago' },
-    { icon: 'add_chart', text: '@Nexus_Prime created a', highlight: '500-participant', rest: 'Geopolitical Event.', time: '18m ago' },
-    { icon: 'rocket_launch', text: '@Sovereign_0x advanced to', highlight: 'Tier 5 Operator', rest: 'status.', time: '1h ago' }
-  ];
+	interface ViewEntry {
+		rank: number;
+		playerID: string;
+		displayName: string;
+		accentLabel: string;
+		accentValue: string;
+		metrics: [ViewMetric, ViewMetric, ViewMetric];
+	}
+
+	interface SummaryCard {
+		label: string;
+		value: string;
+		tone: 'primary' | 'accent' | 'default';
+	}
+
+	let { data }: { data: PageData } = $props();
+	let activeTab = $state<LeaderTab>('top_predictors');
+
+	const tabs: Array<{ key: LeaderTab; label: string; description: string }> = [
+		{
+			key: 'top_predictors',
+			label: 'Top Predictors',
+			description: 'Realized profit ranked first, then win rate and resolved volume.'
+		},
+		{
+			key: 'top_creators',
+			label: 'Top Creators',
+			description: 'Created market count ranked first, then reach and participation.'
+		},
+		{
+			key: 'best_streaks',
+			label: 'Best Streaks',
+			description: 'Current consecutive wins ranked first, then longest streak and win rate.'
+		},
+		{
+			key: 'most_active',
+			label: 'Most Active',
+			description: 'Total positions ranked first, with market creation as the tie-breaker.'
+		}
+	];
+
+	const tabColumns: Record<LeaderTab, { accent: string; labels: [string, string, string] }> = {
+		top_predictors: {
+			accent: 'Net',
+			labels: ['Win Rate', 'Resolved', 'Staked']
+		},
+		top_creators: {
+			accent: 'Markets',
+			labels: ['Participants', 'Positions', 'Resolved']
+		},
+		best_streaks: {
+			accent: 'Current',
+			labels: ['Longest', 'Win Rate', 'Net']
+		},
+		most_active: {
+			accent: 'Positions',
+			labels: ['Open', 'Resolved', 'Markets']
+		}
+	};
+
+	function summaryCards(): SummaryCard[] {
+		const overview = data.leaderboard?.overview;
+		if (!overview) {
+			return [];
+		}
+
+		return [
+			{
+				label: 'Total Predictions',
+				value: formatInteger(overview.total_predictions),
+				tone: 'primary'
+			},
+			{
+				label: 'Resolved Predictions',
+				value: formatInteger(overview.resolved_predictions),
+				tone: 'default'
+			},
+			{
+				label: 'Active Predictors',
+				value: formatInteger(overview.active_predictors),
+				tone: 'accent'
+			},
+			{
+				label: 'Average Win Rate',
+				value: formatPercent(overview.average_win_rate),
+				tone: 'default'
+			}
+		];
+	}
+
+	function activeEntries(): ViewEntry[] {
+		const leaderboard = data.leaderboard;
+		if (!leaderboard) {
+			return [];
+		}
+
+		switch (activeTab) {
+			case 'top_predictors':
+				return leaderboard.top_predictors.map(mapPredictorEntry);
+			case 'top_creators':
+				return leaderboard.top_creators.map(mapCreatorEntry);
+			case 'best_streaks':
+				return leaderboard.best_streaks.map(mapStreakEntry);
+			case 'most_active':
+				return leaderboard.most_active.map(mapActivityEntry);
+		}
+	}
+
+	function podiumEntries(): ViewEntry[] {
+		return activeEntries().slice(0, 3);
+	}
+
+	function tableEntries(): ViewEntry[] {
+		return activeEntries().slice(3);
+	}
+
+	function activeDescription(): string {
+		return tabs.find((tab) => tab.key === activeTab)?.description ?? '';
+	}
+
+	function activeColumnLabels(): [string, string, string] {
+		return tabColumns[activeTab].labels;
+	}
+
+	function activeAccentLabel(): string {
+		return tabColumns[activeTab].accent;
+	}
+
+	function mapPredictorEntry(entry: PredictorLeaderboardEntryResponse): ViewEntry {
+		return {
+			rank: entry.rank,
+			playerID: entry.player_id,
+			displayName: entry.display_name,
+			accentLabel: 'Net',
+			accentValue: formatSignedAmount(entry.net_profit),
+			metrics: [
+				{ label: 'Win Rate', value: formatPercent(entry.win_rate) },
+				{ label: 'Resolved', value: formatInteger(entry.resolved_positions) },
+				{ label: 'Staked', value: formatAmount(entry.total_staked) }
+			]
+		};
+	}
+
+	function mapCreatorEntry(entry: CreatorLeaderboardEntryResponse): ViewEntry {
+		return {
+			rank: entry.rank,
+			playerID: entry.player_id,
+			displayName: entry.display_name,
+			accentLabel: 'Markets',
+			accentValue: formatInteger(entry.created_markets),
+			metrics: [
+				{ label: 'Participants', value: formatInteger(entry.unique_participants) },
+				{ label: 'Positions', value: formatInteger(entry.total_positions) },
+				{ label: 'Resolved', value: formatInteger(entry.resolved_markets) }
+			]
+		};
+	}
+
+	function mapStreakEntry(entry: StreakLeaderboardEntryResponse): ViewEntry {
+		return {
+			rank: entry.rank,
+			playerID: entry.player_id,
+			displayName: entry.display_name,
+			accentLabel: 'Current',
+			accentValue: formatInteger(entry.current_win_streak),
+			metrics: [
+				{ label: 'Longest', value: formatInteger(entry.longest_win_streak) },
+				{ label: 'Win Rate', value: formatPercent(entry.win_rate) },
+				{ label: 'Net', value: formatSignedAmount(entry.net_profit) }
+			]
+		};
+	}
+
+	function mapActivityEntry(entry: ActivityLeaderboardEntryResponse): ViewEntry {
+		return {
+			rank: entry.rank,
+			playerID: entry.player_id,
+			displayName: entry.display_name,
+			accentLabel: 'Positions',
+			accentValue: formatInteger(entry.total_positions),
+			metrics: [
+				{ label: 'Open', value: formatInteger(entry.open_positions) },
+				{ label: 'Resolved', value: formatInteger(entry.resolved_positions) },
+				{ label: 'Markets', value: formatInteger(entry.created_markets) }
+			]
+		};
+	}
+
+	function formatInteger(value: number): string {
+		return new Intl.NumberFormat().format(value);
+	}
+
+	function formatAmount(value: string): string {
+		const numericValue = Number(value);
+		if (!Number.isFinite(numericValue)) {
+			return value;
+		}
+
+		return new Intl.NumberFormat(undefined, {
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 2
+		}).format(numericValue);
+	}
+
+	function formatSignedAmount(value: string): string {
+		const numericValue = Number(value);
+		if (!Number.isFinite(numericValue)) {
+			return value;
+		}
+
+		const prefix = numericValue > 0 ? '+' : '';
+		return `${prefix}${formatAmount(value)}`;
+	}
+
+	function formatPercent(value: string): string {
+		const numericValue = Number(value);
+		if (!Number.isFinite(numericValue)) {
+			return `${value}%`;
+		}
+
+		return `${numericValue.toFixed(1)}%`;
+	}
+
+	function formatGeneratedAt(value: string | undefined): string {
+		if (!value) {
+			return 'Not available';
+		}
+
+		const timestamp = new Date(value);
+		if (Number.isNaN(timestamp.getTime())) {
+			return value;
+		}
+
+		return new Intl.DateTimeFormat(undefined, {
+			dateStyle: 'medium',
+			timeStyle: 'short'
+		}).format(timestamp);
+	}
+
+	function initialsFor(name: string): string {
+		const cleaned = name.replace(/[^A-Za-z0-9_ ]+/g, ' ').trim();
+		const parts = cleaned.split(/[\s_]+/).filter(Boolean);
+		if (parts.length === 0) {
+			return 'PP';
+		}
+
+		if (parts.length === 1) {
+			return parts[0].slice(0, 2).toUpperCase();
+		}
+
+		return `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`.toUpperCase();
+	}
 </script>
 
 <svelte:head>
-  <title>Intelligence Leaderboard | Pacifica Pulse</title>
+	<title>Leaderboard | Pacifica Pulse</title>
 </svelte:head>
 
 <TopNavBar activePage="Leaderboard" />
 
-<main class="flex-grow pt-24 pb-16 px-6 max-w-7xl mx-auto w-full">
-  <header class="mb-12">
-    <h1 class="font-headline text-4xl font-bold tracking-tight mb-2 text-on-surface">Intelligence Leaderboard</h1>
-    <p class="text-on-surface-variant font-light max-w-2xl">Visualizing high-fidelity market performance. Tracking the most precise operators within the Pacifica Pulse ecosystem.</p>
-  </header>
+<main class="flex-grow px-6 pt-24 pb-16">
+	<div class="mx-auto flex w-full max-w-7xl flex-col gap-10">
+		<header class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+			<div class="space-y-3">
+				<p class="text-primary-container text-[10px] tracking-[0.3em] uppercase">
+					Leaderboard Snapshot
+				</p>
+				<h1 class="font-headline text-on-surface text-4xl font-bold tracking-tight md:text-5xl">
+					Leaderboard
+				</h1>
+				<p class="text-outline max-w-2xl text-sm">
+					Live ranking across predictors, creators, streaks, and activity. Every tab is derived from
+					market and position history already stored by the backend.
+				</p>
+			</div>
 
-  <!-- Tabs -->
-  <div class="flex flex-wrap gap-2 mb-10 border-b border-outline-variant/15 pb-4">
-    {#each ['Top Predictors', 'Top Creators', 'Best Streaks', 'Most Active'] as tab}
-      <button
-        onclick={() => activeTab = tab as LeaderTab}
-        class="px-4 py-2 text-sm font-medium tracking-wide transition-colors {activeTab === tab ? 'text-primary border-b-2 border-primary-container' : 'text-slate-400 hover:text-primary'}"
-      >
-        {tab}
-      </button>
-    {/each}
-  </div>
+			<div
+				class="border-outline-variant/20 bg-surface-container-low text-outline border px-5 py-4 text-sm"
+			>
+				<div class="text-primary-container text-[10px] tracking-[0.2em] uppercase">Updated</div>
+				<div class="text-on-surface mt-2 font-medium">
+					{formatGeneratedAt(data.leaderboard?.generated_at)}
+				</div>
+			</div>
+		</header>
 
-  <!-- Podium -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-    {#each podium as op}
-      <div class="{op.order} {op.scale} bg-[rgba(50,53,56,0.6)] backdrop-blur-xl p-6 {op.leader ? 'p-8 border-t-4 border-primary-container shadow-[0_0_12px_rgba(0,219,233,0.15)]' : 'border-t-2 border-slate-500/30'} flex flex-col items-center text-center relative">
-        {#if op.leader}
-          <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary-container text-on-primary-fixed px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] font-headline">Global Leader</div>
-        {/if}
-        <div class="relative mb-4 {op.leader ? 'mb-6' : ''}">
-          <div class="w-20 h-20 {op.leader ? 'w-24 h-24' : ''} rounded-sm bg-surface-container-highest border {op.leader ? 'border-2 border-primary-container/50' : 'border border-outline-variant/30'} flex items-center justify-center">
-            <span class="font-headline font-bold text-2xl text-primary">{op.name[1].toUpperCase()}</span>
-          </div>
-          <span class="absolute {op.leader ? '-bottom-3' : '-top-2 -right-2'} {op.leader ? 'left-1/2 -translate-x-1/2' : ''} bg-{op.leader ? 'primary-container text-on-primary-fixed' : 'surface-container-highest border border-outline-variant/30'} px-2 py-1 text-[10px] font-bold font-headline">{op.rank}</span>
-        </div>
-        <h3 class="font-headline text-{op.leader ? '2xl' : 'lg'} font-bold">{op.name}</h3>
-        <div class="flex items-center gap-1 my-2 bg-primary-container/10 px-2 py-1 rounded-sm">
-          <span class="material-symbols-outlined text-[14px] text-primary-container" style="font-variation-settings: 'FILL' 1;">verified</span>
-          <span class="text-[10px] font-bold uppercase tracking-widest text-primary-container">Verified Alpha</span>
-        </div>
-        <div class="mt-4 w-full grid grid-cols-2 gap-4 border-t border-outline-variant/10 pt-4">
-          <div><p class="text-[10px] text-slate-400 uppercase tracking-tighter">Win Rate</p><p class="text-xl font-bold font-headline text-primary">{op.winRate}</p></div>
-          <div><p class="text-[10px] text-slate-400 uppercase tracking-tighter">Pulse Score</p><p class="text-xl font-bold font-headline">{op.score}</p></div>
-        </div>
-      </div>
-    {/each}
-  </div>
+		{#if summaryCards().length > 0}
+			<section class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+				{#each summaryCards() as card}
+					<div class="border-outline-variant/15 bg-surface-container-low border p-5">
+						<div class="text-outline text-[10px] tracking-[0.2em] uppercase">{card.label}</div>
+						<div
+							class={`font-headline mt-3 text-3xl font-bold ${
+								card.tone === 'primary'
+									? 'text-primary'
+									: card.tone === 'accent'
+										? 'text-primary-container'
+										: 'text-on-surface'
+							}`}
+						>
+							{card.value}
+						</div>
+					</div>
+				{/each}
+			</section>
+		{/if}
 
-  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-    <!-- Main Table -->
-    <div class="lg:col-span-8">
-      <div class="bg-surface-container-low overflow-hidden rounded-sm border border-outline-variant/10">
-        <table class="w-full text-left border-collapse">
-          <thead class="bg-surface-container-high border-b border-outline-variant/20">
-            <tr>
-              {#each ['Rank', 'Operator', 'Win Rate', 'Markets', 'Streak', 'Pulse'] as col}
-                <th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 font-headline {col === 'Win Rate' || col === 'Markets' || col === 'Pulse' ? 'text-right' : ''} {col === 'Streak' ? 'text-center' : ''}">{col}</th>
-              {/each}
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-outline-variant/10">
-            {#each tableRows as row}
-              <tr class="hover:bg-surface-container-highest/30 transition-colors cursor-pointer group">
-                <td class="px-6 py-4 font-mono text-sm text-slate-400 group-hover:text-primary">{row.rank}</td>
-                <td class="px-6 py-4">
-                  <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-sm bg-surface-container-highest border border-outline-variant/20 flex items-center justify-center">
-                      <span class="text-[10px] font-bold">{row.initials}</span>
-                    </div>
-                    <span class="text-sm font-medium">{row.name}</span>
-                  </div>
-                </td>
-                <td class="px-6 py-4 text-right text-primary font-mono text-sm">{row.winRate}</td>
-                <td class="px-6 py-4 text-right text-slate-300 font-mono text-sm">{row.markets}</td>
-                <td class="px-6 py-4 text-center">
-                  <span class="px-2 py-0.5 bg-surface-container-highest text-[10px] font-bold rounded-sm border border-outline-variant/20">{row.streak}</span>
-                </td>
-                <td class="px-6 py-4 text-right font-bold font-headline text-sm">{row.pulse}</td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-        <div class="p-4 bg-surface-container-lowest text-center">
-          <button class="text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">Load Detailed Registry</button>
-        </div>
-      </div>
-    </div>
+		<div class="grid grid-cols-1 gap-8 xl:grid-cols-12">
+			<section class="xl:col-span-8">
+				<div class="border-outline-variant/20 mb-6 flex flex-wrap gap-2 border-b pb-4">
+					{#each tabs as tab}
+						<button
+							class={`px-4 py-2 text-xs font-bold tracking-[0.2em] uppercase transition-colors ${
+								activeTab === tab.key
+									? 'border-primary-container text-primary border-b-2'
+									: 'text-outline hover:text-primary'
+							}`}
+							onclick={() => (activeTab = tab.key)}
+						>
+							{tab.label}
+						</button>
+					{/each}
+				</div>
 
-    <!-- Sidebar -->
-    <div class="lg:col-span-4 flex flex-col gap-8">
-      <!-- Intelligence Feed -->
-      <section class="bg-surface-container-low p-6 rounded-sm border border-outline-variant/10">
-        <h4 class="font-headline text-sm font-bold uppercase tracking-widest mb-6 border-l-2 border-primary-container pl-3">Intelligence Feed</h4>
-        <div class="flex flex-col gap-4">
-          {#each feed as item}
-            <div class="flex gap-4 items-start pb-4 border-b border-outline-variant/5 last:border-0 last:pb-0">
-              <span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings: 'FILL' 1;">{item.icon}</span>
-              <div>
-                <p class="text-xs leading-relaxed">{item.text} <span class="text-primary-container">{item.highlight}</span> {item.rest}</p>
-                <span class="text-[10px] text-slate-500 uppercase mt-1 block">{item.time}</span>
-              </div>
-            </div>
-          {/each}
-        </div>
-      </section>
+				<p class="text-outline mb-8 max-w-2xl text-sm">{activeDescription()}</p>
 
-      <!-- Network Vitals -->
-      <section class="bg-surface-container-low p-6 rounded-sm border border-outline-variant/10">
-        <h4 class="font-headline text-sm font-bold uppercase tracking-widest mb-6 border-l-2 border-primary-container pl-3">Network Vitals</h4>
-        <div class="space-y-6">
-          <div>
-            <div class="flex justify-between items-end mb-2">
-              <span class="text-[10px] text-slate-500 uppercase tracking-tighter">Total Predictions</span>
-              <span class="font-mono text-sm font-bold text-primary">1.28M</span>
-            </div>
-            <div class="h-1 bg-surface-container-highest w-full rounded-full">
-              <div class="h-1 bg-primary-container w-[82%] rounded-full shadow-[0_0_8px_rgba(0,240,255,0.4)]"></div>
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div class="bg-surface-container-highest p-4 rounded-sm">
-              <p class="text-[10px] text-slate-500 uppercase mb-1">Avg Win Rate</p>
-              <p class="text-xl font-bold font-headline">64.2%</p>
-            </div>
-            <div class="bg-surface-container-highest p-4 rounded-sm">
-              <p class="text-[10px] text-slate-500 uppercase mb-1">Active Labs</p>
-              <p class="text-xl font-bold font-headline">412</p>
-            </div>
-          </div>
-        </div>
-      </section>
-    </div>
-  </div>
+				{#if data.error}
+					<section class="border-error/20 bg-surface-container-low border p-8">
+						<p class="text-error text-sm">{data.error}</p>
+					</section>
+				{:else if activeEntries().length === 0}
+					<section class="border-outline-variant/20 bg-surface-container-low border p-8">
+						<p class="text-outline text-sm">
+							The leaderboard will populate as soon as player activity lands in the database.
+						</p>
+					</section>
+				{:else}
+					<div class="grid grid-cols-1 gap-5 md:grid-cols-3">
+						{#each podiumEntries() as entry}
+							<div
+								class={`bg-surface-container-low border p-6 ${
+									entry.rank === 1
+										? 'border-primary-container/40 shadow-[0_0_24px_rgba(0,219,233,0.08)]'
+										: 'border-outline-variant/15'
+								}`}
+							>
+								<div class="flex items-start justify-between gap-4">
+									<div>
+										<div class="text-outline text-[10px] tracking-[0.2em] uppercase">
+											Rank {entry.rank}
+										</div>
+										<h2 class="font-headline text-on-surface mt-3 text-2xl font-bold">
+											{entry.displayName}
+										</h2>
+									</div>
+									<div
+										class="border-outline-variant/20 bg-surface-container text-primary flex h-12 w-12 items-center justify-center border text-sm font-bold"
+									>
+										{initialsFor(entry.displayName)}
+									</div>
+								</div>
+
+								<div class="border-outline-variant/10 mt-6 border-t pt-5">
+									<div class="text-outline text-[10px] tracking-[0.2em] uppercase">
+										{entry.accentLabel}
+									</div>
+									<div class="font-headline text-primary mt-2 text-3xl font-bold">
+										{entry.accentValue}
+									</div>
+								</div>
+
+								<div class="border-outline-variant/10 mt-6 grid grid-cols-3 gap-3 border-t pt-5">
+									{#each entry.metrics as metric}
+										<div>
+											<div class="text-outline text-[10px] tracking-[0.2em] uppercase">
+												{metric.label}
+											</div>
+											<div class="text-on-surface mt-2 text-sm font-semibold">{metric.value}</div>
+										</div>
+									{/each}
+								</div>
+							</div>
+						{/each}
+					</div>
+
+					<div
+						class="border-outline-variant/15 bg-surface-container-low mt-8 overflow-hidden border"
+					>
+						<table class="w-full border-collapse text-left">
+							<thead class="border-outline-variant/20 bg-surface-container border-b">
+								<tr>
+									<th class="text-outline px-5 py-4 text-[10px] tracking-[0.2em] uppercase">Rank</th
+									>
+									<th class="text-outline px-5 py-4 text-[10px] tracking-[0.2em] uppercase"
+										>Player</th
+									>
+									<th
+										class="text-outline px-5 py-4 text-right text-[10px] tracking-[0.2em] uppercase"
+									>
+										{activeAccentLabel()}
+									</th>
+									{#each activeColumnLabels() as label}
+										<th
+											class="text-outline px-5 py-4 text-right text-[10px] tracking-[0.2em] uppercase"
+										>
+											{label}
+										</th>
+									{/each}
+								</tr>
+							</thead>
+							<tbody class="divide-outline-variant/10 divide-y">
+								{#each tableEntries() as entry}
+									<tr class="hover:bg-surface-container transition-colors">
+										<td class="text-outline px-5 py-4 font-mono text-sm">{entry.rank}</td>
+										<td class="px-5 py-4">
+											<div class="flex items-center gap-3">
+												<div
+													class="border-outline-variant/20 bg-surface-container text-primary flex h-9 w-9 items-center justify-center border text-xs font-bold"
+												>
+													{initialsFor(entry.displayName)}
+												</div>
+												<div class="min-w-0">
+													<div class="text-on-surface truncate text-sm font-semibold">
+														{entry.displayName}
+													</div>
+													<div class="text-outline truncate text-[10px] tracking-[0.2em] uppercase">
+														{entry.playerID}
+													</div>
+												</div>
+											</div>
+										</td>
+										<td class="font-headline text-primary px-5 py-4 text-right text-sm font-bold">
+											{entry.accentValue}
+										</td>
+										{#each entry.metrics as metric}
+											<td class="text-on-surface px-5 py-4 text-right text-sm">{metric.value}</td>
+										{/each}
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
+				{/if}
+			</section>
+
+			<aside class="space-y-6 xl:col-span-4">
+				<section class="border-outline-variant/15 bg-surface-container-low border p-6">
+					<h2 class="font-headline text-primary text-sm font-bold tracking-[0.2em] uppercase">
+						Ranking Logic
+					</h2>
+					<div class="text-outline mt-5 space-y-4 text-sm">
+						<p>
+							Predictor rank uses settled performance only, so unresolved exposure does not distort
+							the board.
+						</p>
+						<p>
+							Creator rank rewards both output and reach by combining market count with
+							participation depth.
+						</p>
+						<p>
+							Streak rank follows consecutive settled wins, while activity rank tracks overall usage
+							volume.
+						</p>
+					</div>
+				</section>
+
+				<section class="border-outline-variant/15 bg-surface-container-low border p-6">
+					<h2 class="font-headline text-primary text-sm font-bold tracking-[0.2em] uppercase">
+						Network Snapshot
+					</h2>
+					{#if data.leaderboard}
+						<div class="mt-5 grid grid-cols-2 gap-4">
+							<div class="border-outline-variant/10 bg-surface-container border p-4">
+								<div class="text-outline text-[10px] tracking-[0.2em] uppercase">Creators</div>
+								<div class="font-headline text-on-surface mt-2 text-2xl font-bold">
+									{formatInteger(data.leaderboard.overview.active_creators)}
+								</div>
+							</div>
+							<div class="border-outline-variant/10 bg-surface-container border p-4">
+								<div class="text-outline text-[10px] tracking-[0.2em] uppercase">Predictors</div>
+								<div class="font-headline text-primary mt-2 text-2xl font-bold">
+									{formatInteger(data.leaderboard.overview.active_predictors)}
+								</div>
+							</div>
+						</div>
+						<div class="border-outline-variant/10 bg-surface-container mt-5 border p-4">
+							<div class="text-outline text-[10px] tracking-[0.2em] uppercase">Resolved Share</div>
+							<div class="font-headline text-primary-container mt-2 text-2xl font-bold">
+								{formatPercent(
+									String(
+										data.leaderboard.overview.total_predictions === 0
+											? 0
+											: (data.leaderboard.overview.resolved_predictions /
+													data.leaderboard.overview.total_predictions) *
+													100
+									)
+								)}
+							</div>
+						</div>
+					{:else}
+						<p class="text-outline mt-5 text-sm">
+							Snapshot metrics will appear here once the leaderboard response is available.
+						</p>
+					{/if}
+				</section>
+			</aside>
+		</div>
+	</div>
 </main>
-
-<footer class="w-full py-8 mt-auto bg-[#0b0e11] border-t border-[#3b494b]/15">
-  <div class="flex flex-col md:flex-row justify-between items-center px-8 max-w-7xl mx-auto font-body text-xs uppercase tracking-widest">
-    <span class="text-slate-500 mb-4 md:mb-0">© 2024 Pacifica Pulse Intelligence</span>
-    <div class="flex gap-8">
-      {#each ['System Status', 'Legal', 'Privacy Policy', 'Terms of Service'] as link}
-        <a class="text-slate-500 hover:text-[#00F0FF] transition-colors" href="/">{link}</a>
-      {/each}
-    </div>
-  </div>
-</footer>

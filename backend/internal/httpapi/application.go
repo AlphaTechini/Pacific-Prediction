@@ -6,6 +6,7 @@ import (
 	"prediction/internal/auth"
 	"prediction/internal/balance"
 	"prediction/internal/config"
+	"prediction/internal/leaderboard"
 	"prediction/internal/market"
 	"prediction/internal/player"
 	"prediction/internal/position"
@@ -20,12 +21,13 @@ type Dependencies struct {
 }
 
 type Controllers struct {
-	Auth     auth.Controller
-	Player   player.Controller
-	Balance  balance.Controller
-	Market   market.Controller
-	Position position.Controller
-	Realtime realtime.Controller
+	Auth        auth.Controller
+	Player      player.Controller
+	Balance     balance.Controller
+	Leaderboard leaderboard.Controller
+	Market      market.Controller
+	Position    position.Controller
+	Realtime    realtime.Controller
 }
 
 type Application struct {

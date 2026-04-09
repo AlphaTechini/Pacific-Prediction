@@ -12,6 +12,7 @@ import (
 	"prediction/internal/balance"
 	"prediction/internal/config"
 	"prediction/internal/httpapi"
+	"prediction/internal/leaderboard"
 	"prediction/internal/market"
 	"prediction/internal/pacifica"
 	"prediction/internal/player"
@@ -45,6 +46,7 @@ func main() {
 	playerRepository := storage.NewPlayerPostgresRepository(db.Pool())
 	sessionRepository := storage.NewSessionPostgresRepository(db.Pool())
 	balanceRepository := storage.NewBalancePostgresRepository(db.Pool())
+	leaderboardRepository := storage.NewLeaderboardPostgresRepository(db.Pool())
 	marketRepository := storage.NewMarketPostgresRepository(db.Pool())
 	positionRepository := storage.NewPositionPostgresRepository(db.Pool())
 	realtimeHub := realtime.NewHub()
@@ -64,6 +66,7 @@ func main() {
 	})
 	playerService := player.NewService(playerRepository)
 	balanceService := balance.NewService(balanceRepository)
+	leaderboardService := leaderboard.NewService(leaderboardRepository)
 	marketValidator := market.NewValidationService(pacificaRESTClient)
 	marketService := market.NewServiceWithDeps(market.ServiceDeps{
 		MarketRepository:      marketRepository,
@@ -103,23 +106,26 @@ func main() {
 	authController := auth.NewController(authService)
 	playerController := player.NewController(playerService)
 	positionController := position.NewController(positionService)
+	leaderboardController := leaderboard.NewController(leaderboardService)
 	realtimeController := realtime.NewController(realtimeHub)
 	cookieManager := auth.NewCookieManager(cfg.Auth)
 	requireSession := httpapi.NewRequireSessionMiddleware(authController, cookieManager)
 
 	app.WithControllers(httpapi.Controllers{
-		Auth:     authController,
-		Player:   playerController,
-		Balance:  balanceController,
-		Market:   marketController,
-		Position: positionController,
-		Realtime: realtimeController,
+		Auth:        authController,
+		Player:      playerController,
+		Balance:     balanceController,
+		Leaderboard: leaderboardController,
+		Market:      marketController,
+		Position:    positionController,
+		Realtime:    realtimeController,
 	})
 
 	app.RegisterRoute(http.MethodPost, "/api/v1/players/guest", httpapi.NewCreateGuestSessionHandler(authController, playerController, cookieManager))
 	app.RegisterRoute(http.MethodGet, "/api/v1/players/me", requireSession(httpapi.NewGetMeHandler(playerController)))
 	app.RegisterRoute(http.MethodGet, "/api/v1/players/me/balance", requireSession(httpapi.NewGetBalanceHandler(balanceController)))
 	app.RegisterRoute(http.MethodGet, "/api/v1/players/me/positions", requireSession(httpapi.NewListPlayerPositionsHandler(positionController)))
+	app.RegisterRoute(http.MethodGet, "/api/v1/leaderboard", httpapi.NewGetLeaderboardHandler(leaderboardController))
 	app.RegisterRoute(http.MethodGet, "/api/v1/stream", httpapi.NewStreamHandler(realtimeController, cfg.Realtime.HeartbeatInterval))
 	app.RegisterRoute(http.MethodPost, "/api/v1/markets", requireSession(httpapi.NewCreateMarketHandler(marketController)))
 	app.RegisterRoute(http.MethodGet, "/api/v1/markets", httpapi.NewListMarketsHandler(marketController))
