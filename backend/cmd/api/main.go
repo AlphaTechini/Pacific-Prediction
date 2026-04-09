@@ -79,10 +79,12 @@ func main() {
 		MarketRepository: marketRepository,
 	})
 	settlementWorker := settlement.NewWorker(settlement.WorkerDeps{
-		Logger:        log.Default(),
-		Service:       settlementService,
-		ScanInterval:  cfg.Settlement.ScanInterval,
-		ScanBatchSize: cfg.Settlement.ScanBatchSize,
+		Logger:             log.Default(),
+		Service:            settlementService,
+		ScanInterval:       cfg.Settlement.ScanInterval,
+		ScanBatchSize:      cfg.Settlement.ScanBatchSize,
+		PriceLookahead:     cfg.Settlement.PriceLookahead,
+		PriceRetryInterval: cfg.Settlement.PriceRetryInterval,
 	})
 
 	authController := auth.NewController(authService)

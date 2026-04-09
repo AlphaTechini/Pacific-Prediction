@@ -10,12 +10,14 @@ I use this folder for expiry scanning, settlement execution, payout calculation,
 - This package should own deterministic result computation and transactional updates across markets, positions, and balances.
 - In v1, price-threshold settlement should prefer batched Pacifica REST reads at expiry time, while candle and funding settlement should resolve from historical endpoints on demand.
 - A price market should settle only when the Pacifica response timestamp is at or after expiry, and the worker should retry briefly instead of guessing if the first fetch is too early.
+- The worker should plan price fetches in shared near-expiry batches instead of scheduling one timer or cron job per market.
 - The tradeoff is that it depends on several other packages, but I prefer one explicit coordination point over scattered settlement code.
 
 ## Logic Tracking
 
 - To find settlement orchestration contracts visit [service.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/service.go).
 - To find settlement scan service behavior visit [service_impl.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/service_impl.go).
+- To find price fetch batch planning visit [price_fetch_plan.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/price_fetch_plan.go).
 - To find worker lifecycle contracts visit [worker.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/worker.go).
 - To find expiry scanner loop behavior visit [worker_impl.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/worker_impl.go).
 - To find price settlement resolver contracts visit [price_resolver.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/price_resolver.go).

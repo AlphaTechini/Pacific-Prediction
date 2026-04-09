@@ -40,8 +40,10 @@ type PacificaConfig struct {
 }
 
 type SettlementConfig struct {
-	ScanInterval  time.Duration
-	ScanBatchSize int
+	ScanInterval       time.Duration
+	ScanBatchSize      int
+	PriceLookahead     time.Duration
+	PriceRetryInterval time.Duration
 }
 
 func Load() (Config, error) {
@@ -217,9 +219,37 @@ func loadSettlementConfig() (SettlementConfig, error) {
 		return SettlementConfig{}, fmt.Errorf("SETTLEMENT_SCAN_BATCH_SIZE must be greater than zero")
 	}
 
+	priceLookaheadRaw := os.Getenv("SETTLEMENT_PRICE_LOOKAHEAD")
+	if priceLookaheadRaw == "" {
+		return SettlementConfig{}, fmt.Errorf("SETTLEMENT_PRICE_LOOKAHEAD is required")
+	}
+
+	priceLookahead, err := time.ParseDuration(priceLookaheadRaw)
+	if err != nil {
+		return SettlementConfig{}, fmt.Errorf("parse SETTLEMENT_PRICE_LOOKAHEAD: %w", err)
+	}
+	if priceLookahead <= 0 {
+		return SettlementConfig{}, fmt.Errorf("SETTLEMENT_PRICE_LOOKAHEAD must be greater than zero")
+	}
+
+	priceRetryIntervalRaw := os.Getenv("SETTLEMENT_PRICE_RETRY_INTERVAL")
+	if priceRetryIntervalRaw == "" {
+		return SettlementConfig{}, fmt.Errorf("SETTLEMENT_PRICE_RETRY_INTERVAL is required")
+	}
+
+	priceRetryInterval, err := time.ParseDuration(priceRetryIntervalRaw)
+	if err != nil {
+		return SettlementConfig{}, fmt.Errorf("parse SETTLEMENT_PRICE_RETRY_INTERVAL: %w", err)
+	}
+	if priceRetryInterval <= 0 {
+		return SettlementConfig{}, fmt.Errorf("SETTLEMENT_PRICE_RETRY_INTERVAL must be greater than zero")
+	}
+
 	return SettlementConfig{
-		ScanInterval:  scanInterval,
-		ScanBatchSize: scanBatchSize,
+		ScanInterval:       scanInterval,
+		ScanBatchSize:      scanBatchSize,
+		PriceLookahead:     priceLookahead,
+		PriceRetryInterval: priceRetryInterval,
 	}, nil
 }
 

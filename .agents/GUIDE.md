@@ -79,4 +79,5 @@
 - Any shared settlement audit shape should exist only after resolver-specific outputs are mapped into persistence-friendly fields.
 - The expiry scanner uses the market repository to discover due active markets by `expiry_time` and hands off only orchestration-level attempts until per-market settlement logic is implemented.
 - Price settlement should group due markets into batched Pacifica price fetches instead of creating per-market cron jobs.
+- The settlement worker should maintain a configurable near-expiry lookahead window and retry interval for price-fetch planning.
 

@@ -47,6 +47,17 @@ func (s *service) SettleDueMarkets(ctx context.Context, filter DueMarketFilter) 
 	return attempts, nil
 }
 
+func (s *service) PlanPriceFetchBatches(ctx context.Context, filter PriceFetchPlanFilter) ([]PriceFetchBatch, error) {
+	normalized := normalizePriceFetchPlanFilter(filter)
+
+	items, err := s.marketRepository.ListExpiringBefore(ctx, normalized.Before, normalized.Limit)
+	if err != nil {
+		return nil, fmt.Errorf("list upcoming price markets for fetch planning: %w", err)
+	}
+
+	return buildPriceFetchBatches(items, normalized.After), nil
+}
+
 func normalizeDueMarketFilter(filter DueMarketFilter) DueMarketFilter {
 	if filter.Before.IsZero() {
 		filter.Before = domain.NowUTC()
