@@ -19,7 +19,7 @@ func NewStreamHandler(controller realtime.Controller, heartbeatInterval time.Dur
 
 		subscription, err := controller.Subscribe(r.Context())
 		if err != nil {
-			writeError(w, err)
+			writeError(w, r, err)
 			return
 		}
 		defer subscription.Close()

@@ -34,7 +34,7 @@ INSERT INTO markets (
     expiry_time,
     created_by_player_id
 )
-VALUES ($1, $2, $3, $4, $5, NULLIF($6, ''), $7, NULLIF($8, ''), NULLIF($9, ''), $10, $11)
+VALUES ($1, $2, $3, $4, $5, NULLIF($6, '')::numeric, $7, NULLIF($8, ''), NULLIF($9, '')::numeric, $10, $11)
 RETURNING
     id,
     title,

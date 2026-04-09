@@ -32,13 +32,13 @@ func NewCreateGuestSessionHandler(authController auth.Controller, playerControll
 			DisplayName: request.DisplayName,
 		})
 		if err != nil {
-			writeError(w, err)
+			writeError(w, r, err)
 			return
 		}
 
 		profile, err := playerController.GetMe(r.Context(), issuedSession.Session.PlayerID)
 		if err != nil {
-			writeError(w, err)
+			writeError(w, r, err)
 			return
 		}
 
@@ -57,18 +57,18 @@ func NewRequireSessionMiddleware(controller auth.Controller, cookies *auth.Cooki
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			rawToken, err := cookies.ReadSessionCookie(r)
 			if err != nil {
-				writeError(w, auth.ErrUnauthorized)
+				writeError(w, r, auth.ErrUnauthorized)
 				return
 			}
 
 			authContext, err := controller.ValidateSession(r.Context(), rawToken)
 			if err != nil {
 				if errors.Is(err, auth.ErrUnauthorized) {
-					writeError(w, auth.ErrUnauthorized)
+					writeError(w, r, auth.ErrUnauthorized)
 					return
 				}
 
-				writeError(w, err)
+				writeError(w, r, err)
 				return
 			}
 

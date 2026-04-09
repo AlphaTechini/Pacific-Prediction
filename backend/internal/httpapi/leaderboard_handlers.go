@@ -83,7 +83,7 @@ func NewGetLeaderboardHandler(controller leaderboard.Controller) http.Handler {
 
 		snapshot, err := controller.GetSnapshot(r.Context(), limit)
 		if err != nil {
-			writeError(w, err)
+			writeError(w, r, err)
 			return
 		}
 

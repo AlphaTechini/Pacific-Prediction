@@ -18,13 +18,13 @@ func NewGetMeHandler(controller player.Controller) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		playerID, err := auth.RequiredPlayerID(r.Context())
 		if err != nil {
-			writeError(w, err)
+			writeError(w, r, err)
 			return
 		}
 
 		profile, err := controller.GetMe(r.Context(), playerID)
 		if err != nil {
-			writeError(w, err)
+			writeError(w, r, err)
 			return
 		}
 

@@ -40,7 +40,20 @@ async function proxyRequest({ fetch, params, request, url }: Parameters<RequestH
 		init.body = await request.arrayBuffer();
 	}
 
-	const upstreamResponse = await fetch(targetUrl, init);
+	let upstreamResponse: Response;
+	try {
+		upstreamResponse = await fetch(targetUrl, init);
+	} catch (error) {
+		const detail = error instanceof Error && error.message ? error.message : 'Unknown fetch failure';
+
+		return Response.json(
+			{
+				error: `backend_unreachable: ${detail}`,
+				target: targetUrl
+			},
+			{ status: 502 }
+		);
+	}
 	const responseHeaders = new Headers(upstreamResponse.headers);
 
 	for (const header of HOP_BY_HOP_HEADERS) {

@@ -33,7 +33,7 @@ func NewCreatePositionHandler(controller position.Controller) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		playerID, err := auth.RequiredPlayerID(r.Context())
 		if err != nil {
-			writeError(w, err)
+			writeError(w, r, err)
 			return
 		}
 
@@ -55,7 +55,7 @@ func NewCreatePositionHandler(controller position.Controller) http.Handler {
 			StakeAmount: request.StakeAmount,
 		})
 		if err != nil {
-			writeError(w, err)
+			writeError(w, r, err)
 			return
 		}
 
@@ -67,7 +67,7 @@ func NewListPlayerPositionsHandler(controller position.Controller) http.Handler 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		playerID, err := auth.RequiredPlayerID(r.Context())
 		if err != nil {
-			writeError(w, err)
+			writeError(w, r, err)
 			return
 		}
 
@@ -75,7 +75,7 @@ func NewListPlayerPositionsHandler(controller position.Controller) http.Handler 
 			Limit: 100,
 		})
 		if err != nil {
-			writeError(w, err)
+			writeError(w, r, err)
 			return
 		}
 

@@ -29,7 +29,7 @@ INSERT INTO positions (
     stake_amount,
     potential_payout
 )
-VALUES ($1, $2, $3, $4, $5, $6)
+VALUES ($1, $2, $3, $4, $5::numeric, $6::numeric)
 RETURNING
     id,
     player_id,

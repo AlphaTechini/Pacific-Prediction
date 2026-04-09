@@ -29,7 +29,7 @@ INSERT INTO market_settlements (
     settlement_value,
     result
 )
-VALUES ($1, $2, $3, $4, $5::jsonb, NULLIF($6, ''), $7)
+VALUES ($1, $2, $3, $4, $5::jsonb, NULLIF($6, '')::numeric, $7)
 RETURNING
     id,
     market_id,

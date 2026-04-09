@@ -105,7 +105,7 @@ func NewCreateMarketHandler(controller market.Controller) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		playerID, err := auth.RequiredPlayerID(r.Context())
 		if err != nil {
-			writeError(w, err)
+			writeError(w, r, err)
 			return
 		}
 
@@ -136,7 +136,7 @@ func NewCreateMarketHandler(controller market.Controller) http.Handler {
 			CreatedByPlayerID:  playerID,
 		})
 		if err != nil {
-			writeError(w, err)
+			writeError(w, r, err)
 			return
 		}
 
@@ -148,7 +148,7 @@ func NewListMarketsHandler(controller market.Controller) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		catalog, err := controller.ListCatalog(r.Context(), 50)
 		if err != nil {
-			writeError(w, err)
+			writeError(w, r, err)
 			return
 		}
 
@@ -163,7 +163,7 @@ func NewGetMarketCreateContextHandler(controller market.Controller) http.Handler
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		createContext, err := controller.GetCreateContext(r.Context())
 		if err != nil {
-			writeError(w, err)
+			writeError(w, r, err)
 			return
 		}
 
@@ -181,7 +181,7 @@ func NewGetMarketDetailHandler(controller market.Controller) http.Handler {
 
 		record, err := controller.GetByID(r.Context(), domain.MarketID(marketID))
 		if err != nil {
-			writeError(w, err)
+			writeError(w, r, err)
 			return
 		}
 

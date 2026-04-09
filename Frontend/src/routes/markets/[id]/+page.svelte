@@ -1,473 +1,588 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { get } from 'svelte/store';
-  import { page } from '$app/stores';
+	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
+	import { page } from '$app/stores';
 
-  import type { MarketResponse, PositionResponse } from '$lib/api-types';
-  import Button from '$lib/components/Button.svelte';
-  import TopNavBar from '$lib/components/TopNavBar.svelte';
-  import { ensureGuestSession } from '$lib/guest-session';
-  import {
-    loadMarketAccountData,
-    loadMarketDetail,
-    loadRelatedMarkets,
-    submitPosition
-  } from '$lib/market-detail-data';
+	import type { MarketResponse, PositionResponse } from '$lib/api-types';
+	import Button from '$lib/components/Button.svelte';
+	import TopNavBar from '$lib/components/TopNavBar.svelte';
+	import { ensureGuestSession } from '$lib/guest-session';
+	import {
+		loadMarketAccountData,
+		loadMarketDetail,
+		loadRelatedMarkets,
+		submitPosition
+	} from '$lib/market-detail-data';
 
-  type LoadStatus = 'loading' | 'ready' | 'error';
-  type SubmitStatus = 'idle' | 'submitting' | 'error';
+	type LoadStatus = 'loading' | 'ready' | 'error';
+	type SubmitStatus = 'idle' | 'submitting' | 'error';
 
-  const detailState = $state({
-    loadStatus: 'loading' as LoadStatus,
-    submitStatus: 'idle' as SubmitStatus,
-    loadError: null as string | null,
-    submitError: null as string | null,
-    successMessage: null as string | null,
-    market: null as MarketResponse | null,
-    relatedMarkets: [] as MarketResponse[],
-    positions: [] as PositionResponse[],
-    availableBalance: '0.00',
-    lockedBalance: '0.00'
-  });
+	const detailState = $state({
+		loadStatus: 'loading' as LoadStatus,
+		submitStatus: 'idle' as SubmitStatus,
+		loadError: null as string | null,
+		submitError: null as string | null,
+		successMessage: null as string | null,
+		market: null as MarketResponse | null,
+		relatedMarkets: [] as MarketResponse[],
+		positions: [] as PositionResponse[],
+		availableBalance: '0.00',
+		lockedBalance: '0.00'
+	});
 
-  let selectedSide = $state<'yes' | 'no'>('yes');
-  let stakeAmount = $state('');
+	let selectedSide = $state<'yes' | 'no'>('yes');
+	let stakeAmount = $state('');
 
-  onMount(() => {
-    void loadPage();
-  });
+	onMount(() => {
+		void loadPage();
+	});
 
-  async function loadPage(): Promise<void> {
-    detailState.loadStatus = 'loading';
-    detailState.loadError = null;
-    detailState.successMessage = null;
+	async function loadPage(): Promise<void> {
+		detailState.loadStatus = 'loading';
+		detailState.loadError = null;
+		detailState.successMessage = null;
 
-    const marketID = currentMarketID();
-    if (!marketID) {
-      detailState.loadStatus = 'error';
-      detailState.loadError = 'This market id is missing.';
-      return;
-    }
+		const marketID = currentMarketID();
+		if (!marketID) {
+			detailState.loadStatus = 'error';
+			detailState.loadError = 'This market id is missing.';
+			return;
+		}
 
-    try {
-      const [market, relatedMarkets] = await Promise.all([
-        loadMarketDetail(marketID),
-        loadRelatedMarkets(marketID)
-      ]);
+		try {
+			const [market, relatedMarkets] = await Promise.all([
+				loadMarketDetail(marketID),
+				loadRelatedMarkets(marketID)
+			]);
 
-      detailState.market = market;
-      detailState.relatedMarkets = relatedMarkets;
-      detailState.loadStatus = 'ready';
-    } catch (error) {
-      detailState.loadStatus = 'error';
-      detailState.loadError = toErrorMessage(error, 'Unable to load this market.');
-      return;
-    }
+			detailState.market = market;
+			detailState.relatedMarkets = relatedMarkets;
+			detailState.loadStatus = 'ready';
+		} catch (error) {
+			detailState.loadStatus = 'error';
+			detailState.loadError = toErrorMessage(error, 'Unable to load this market.');
+			return;
+		}
 
-    try {
-      await ensureGuestSession();
-      const accountData = await loadMarketAccountData();
+		try {
+			await ensureGuestSession();
+			const accountData = await loadMarketAccountData();
 
-      detailState.availableBalance = accountData.balance.available_balance;
-      detailState.lockedBalance = accountData.balance.locked_balance;
-      detailState.positions = accountData.positions;
-    } catch (error) {
-      detailState.submitError = toErrorMessage(error, 'Your guest session is not ready yet.');
-    }
-  }
+			detailState.availableBalance = accountData.balance.available_balance;
+			detailState.lockedBalance = accountData.balance.locked_balance;
+			detailState.positions = accountData.positions;
+		} catch (error) {
+			detailState.submitError = toErrorMessage(error, 'Your guest session is not ready yet.');
+		}
+	}
 
-  function currentMarketID(): string {
-    return get(page).params.id ?? '';
-  }
+	function currentMarketID(): string {
+		return get(page).params.id ?? '';
+	}
 
-  function marketTypeLabel(value: string): string {
-    const labels: Record<string, string> = {
-      price_threshold: 'Price Threshold',
-      candle_direction: 'Candle Direction',
-      funding_threshold: 'Funding Direction Or Threshold'
-    };
+	function marketTypeLabel(value: string): string {
+		const labels: Record<string, string> = {
+			price_threshold: 'Price Threshold',
+			candle_direction: 'Candle Direction',
+			funding_threshold: 'Funding Direction Or Threshold'
+		};
 
-    return labels[value] ?? value.replaceAll('_', ' ');
-  }
+		return labels[value] ?? value.replaceAll('_', ' ');
+	}
 
-  function sourceTypeLabel(value: string): string {
-    const labels: Record<string, string> = {
-      mark_price: 'Mark Price',
-      mark_price_candle: 'Mark Price Candle',
-      funding_rate: 'Funding Rate'
-    };
+	function sourceTypeLabel(value: string): string {
+		const labels: Record<string, string> = {
+			mark_price: 'Mark Price',
+			mark_price_candle: 'Mark Price Candle',
+			funding_rate: 'Funding Rate'
+		};
 
-    return labels[value] ?? value.replaceAll('_', ' ');
-  }
+		return labels[value] ?? value.replaceAll('_', ' ');
+	}
 
-  function operatorLabel(value: string): string {
-    const labels: Record<string, string> = {
-      gt: 'Greater than',
-      gte: 'Greater than or equal',
-      lt: 'Less than',
-      lte: 'Less than or equal',
-      bullish_close: 'Bullish close',
-      bearish_close: 'Bearish close',
-      positive: 'Positive',
-      negative: 'Negative'
-    };
+	function operatorLabel(value: string): string {
+		const labels: Record<string, string> = {
+			gt: 'Greater than',
+			gte: 'Greater than or equal',
+			lt: 'Less than',
+			lte: 'Less than or equal',
+			bullish_close: 'Bullish close',
+			bearish_close: 'Bearish close',
+			positive: 'Positive',
+			negative: 'Negative'
+		};
 
-    return labels[value] ?? value.replaceAll('_', ' ');
-  }
+		return labels[value] ?? value.replaceAll('_', ' ');
+	}
 
-  function formatStatus(value: string): string {
-    return value.replaceAll('_', ' ');
-  }
+	function formatStatus(value: string): string {
+		return value.replaceAll('_', ' ');
+	}
 
-  function statusVariant(value: string): string {
-    if (value === 'active') {
-      return 'bg-primary-container/10 text-primary-container border-primary-container/20';
-    }
+	function statusVariant(value: string): string {
+		if (value === 'active') {
+			return 'bg-primary-container/10 text-primary-container border-primary-container/20';
+		}
 
-    if (value === 'resolving') {
-      return 'bg-tertiary-fixed-dim/10 text-tertiary-fixed-dim border-tertiary-fixed-dim/20';
-    }
+		if (value === 'resolving') {
+			return 'bg-tertiary-fixed-dim/10 text-tertiary-fixed-dim border-tertiary-fixed-dim/20';
+		}
 
-    if (value === 'resolved') {
-      return 'bg-surface-container-highest text-outline border-outline-variant/30';
-    }
+		if (value === 'resolved') {
+			return 'bg-surface-container-highest text-outline border-outline-variant/30';
+		}
 
-    return 'bg-error/10 text-error border-error/20';
-  }
+		return 'bg-error/10 text-error border-error/20';
+	}
 
-  function formatDateTime(value?: string): string {
-    if (!value) {
-      return 'Not available';
-    }
+	function formatDateTime(value?: string): string {
+		if (!value) {
+			return 'Not available';
+		}
 
-    return new Intl.DateTimeFormat(undefined, {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit'
-    }).format(new Date(value));
-  }
+		return new Intl.DateTimeFormat(undefined, {
+			month: 'short',
+			day: 'numeric',
+			year: 'numeric',
+			hour: 'numeric',
+			minute: '2-digit'
+		}).format(new Date(value));
+	}
 
-  function settlementRule(): string {
-    const market = detailState.market;
-    if (!market) {
-      return '';
-    }
+	function normalizeText(value: string | number | null | undefined): string {
+		if (value === null || value === undefined) {
+			return '';
+		}
 
-    if (market.market_type === 'candle_direction') {
-      return `This market resolves from the ${market.source_interval || 'selected'} candle close using a ${operatorLabel(market.condition_operator).toLowerCase()} rule.`;
-    }
+		return String(value).trim();
+	}
 
-    if (market.market_type === 'funding_threshold' && ['positive', 'negative'].includes(market.condition_operator)) {
-      const direction = market.condition_operator === 'positive' ? 'above zero' : 'below zero';
-      return `This market settles YES when the funding value is ${direction} at the funding checkpoint.`;
-    }
+	function settlementRule(): string {
+		const market = detailState.market;
+		if (!market) {
+			return '';
+		}
 
-    if (market.threshold_value) {
-      return `This market settles YES when the observed value is ${operatorLabel(market.condition_operator).toLowerCase()} ${market.threshold_value}.`;
-    }
+		if (market.market_type === 'candle_direction') {
+			return `This market resolves from the ${market.source_interval || 'selected'} candle close using a ${operatorLabel(market.condition_operator).toLowerCase()} rule.`;
+		}
 
-    return `This market uses ${operatorLabel(market.condition_operator).toLowerCase()} as its settlement rule.`;
-  }
+		if (
+			market.market_type === 'funding_threshold' &&
+			['positive', 'negative'].includes(market.condition_operator)
+		) {
+			const direction = market.condition_operator === 'positive' ? 'above zero' : 'below zero';
+			return `This market settles YES when the funding value is ${direction} at the funding checkpoint.`;
+		}
 
-  function myPositions(): PositionResponse[] {
-    const marketID = detailState.market?.id;
-    if (!marketID) {
-      return [];
-    }
+		if (market.threshold_value) {
+			return `This market settles YES when the observed value is ${operatorLabel(market.condition_operator).toLowerCase()} ${market.threshold_value}.`;
+		}
 
-    return detailState.positions.filter((position) => position.market_id === marketID);
-  }
+		return `This market uses ${operatorLabel(market.condition_operator).toLowerCase()} as its settlement rule.`;
+	}
 
-  function tradingClosed(): boolean {
-    return detailState.market?.status !== 'active';
-  }
+	function myPositions(): PositionResponse[] {
+		const marketID = detailState.market?.id;
+		if (!marketID) {
+			return [];
+		}
 
-  async function handleSubmit(event: SubmitEvent): Promise<void> {
-    event.preventDefault();
+		return detailState.positions.filter((position) => position.market_id === marketID);
+	}
 
-    const market = detailState.market;
-    if (!market) {
-      return;
-    }
+	function tradingClosed(): boolean {
+		return detailState.market?.status !== 'active';
+	}
 
-    if (tradingClosed()) {
-      detailState.submitStatus = 'error';
-      detailState.submitError = 'Trading is closed for this market.';
-      return;
-    }
+	async function handleSubmit(event: SubmitEvent): Promise<void> {
+		event.preventDefault();
 
-    detailState.submitStatus = 'submitting';
-    detailState.submitError = null;
-    detailState.successMessage = null;
+		const market = detailState.market;
+		if (!market) {
+			return;
+		}
 
-    const player = await ensureGuestSession();
-    if (!player) {
-      detailState.submitStatus = 'error';
-      detailState.submitError = 'Your guest session is not ready yet.';
-      return;
-    }
+		if (tradingClosed()) {
+			detailState.submitStatus = 'error';
+			detailState.submitError = 'Trading is closed for this market.';
+			return;
+		}
 
-    try {
-      await submitPosition(market.id, {
-        side: selectedSide,
-        stake_amount: stakeAmount.trim()
-      });
+		detailState.submitStatus = 'submitting';
+		detailState.submitError = null;
+		detailState.successMessage = null;
 
-      stakeAmount = '';
-      detailState.submitStatus = 'idle';
-      detailState.successMessage = 'Your position was placed successfully.';
+		const player = await ensureGuestSession();
+		if (!player) {
+			detailState.submitStatus = 'error';
+			detailState.submitError = 'Your guest session is not ready yet.';
+			return;
+		}
 
-      const accountData = await loadMarketAccountData();
-      detailState.availableBalance = accountData.balance.available_balance;
-      detailState.lockedBalance = accountData.balance.locked_balance;
-      detailState.positions = accountData.positions;
-    } catch (error) {
-      detailState.submitStatus = 'error';
-      detailState.submitError = toErrorMessage(error, 'Unable to place that position right now.');
-    }
-  }
+		try {
+			await submitPosition(market.id, {
+				side: selectedSide,
+				stake_amount: normalizeText(stakeAmount)
+			});
 
-  function toErrorMessage(error: unknown, fallback: string): string {
-    if (error instanceof Error && error.message) {
-      return error.message;
-    }
+			stakeAmount = '';
+			detailState.submitStatus = 'idle';
+			detailState.successMessage = 'Your position was placed successfully.';
 
-    return fallback;
-  }
+			const accountData = await loadMarketAccountData();
+			detailState.availableBalance = accountData.balance.available_balance;
+			detailState.lockedBalance = accountData.balance.locked_balance;
+			detailState.positions = accountData.positions;
+		} catch (error) {
+			detailState.submitStatus = 'error';
+			detailState.submitError = toErrorMessage(error, 'Unable to place that position right now.');
+		}
+	}
+
+	function toErrorMessage(error: unknown, fallback: string): string {
+		if (error instanceof Error && error.message) {
+			return error.message;
+		}
+
+		return fallback;
+	}
 </script>
 
 <svelte:head>
-  <title>Market Details | Pacifica Pulse</title>
+	<title>Market Details | Pacifica Pulse</title>
 </svelte:head>
 
 <TopNavBar activePage="Markets" />
 
-<main class="pt-24 pb-20 px-6 max-w-[1400px] mx-auto">
-  {#if detailState.loadStatus === 'loading'}
-    <section class="bg-surface-container-low p-8 border border-outline-variant/20">
-      <p class="text-sm text-outline">Loading this market.</p>
-    </section>
-  {:else if detailState.loadStatus === 'error'}
-    <section class="bg-surface-container-low p-8 border border-error/20 space-y-4">
-      <p class="text-sm text-error">{detailState.loadError}</p>
-      <Button class="px-5 py-3 text-xs uppercase tracking-[0.2em]" onclick={loadPage}>Try Again</Button>
-    </section>
-  {:else if detailState.market}
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <div class="lg:col-span-8 space-y-6">
-        <header class="bg-surface-container-low p-6 rounded-sm border-l-4 border-primary-container">
-          <div class="flex flex-wrap justify-between items-start gap-4 mb-4">
-            <div class="space-y-2">
-              <div class="flex items-center gap-3 flex-wrap">
-                <span class="px-2 py-0.5 text-[10px] font-bold tracking-widest uppercase rounded-sm border {statusVariant(detailState.market.status)}">
-                  {formatStatus(detailState.market.status)}
-                </span>
-                <span class="text-outline text-xs font-mono uppercase tracking-widest">
-                  Type: {marketTypeLabel(detailState.market.market_type)}
-                </span>
-              </div>
-              <h1 class="text-2xl md:text-3xl font-bold font-headline leading-tight text-on-surface">
-                {detailState.market.title}
-              </h1>
-              <p class="text-primary font-mono text-sm tracking-tight opacity-80">{detailState.market.symbol}</p>
-            </div>
-            <div class="bg-surface-container p-4 rounded-sm border border-outline-variant/15 min-w-[220px]">
-              <div class="text-[10px] text-outline uppercase tracking-widest font-bold">Expiry Time</div>
-              <div class="mt-2 text-base font-mono font-bold text-primary-container">{formatDateTime(detailState.market.expiry_time)}</div>
-              {#if detailState.market.resolved_at}
-                <div class="mt-3 text-[10px] text-outline uppercase tracking-widest font-bold">Resolved At</div>
-                <div class="mt-1 text-sm font-mono text-on-surface">{formatDateTime(detailState.market.resolved_at)}</div>
-              {/if}
-            </div>
-          </div>
-        </header>
+<main class="mx-auto max-w-[1400px] px-6 pt-24 pb-20">
+	{#if detailState.loadStatus === 'loading'}
+		<section class="bg-surface-container-low border-outline-variant/20 border p-8">
+			<p class="text-outline text-sm">Loading this market.</p>
+		</section>
+	{:else if detailState.loadStatus === 'error'}
+		<section class="bg-surface-container-low border-error/20 space-y-4 border p-8">
+			<p class="text-error text-sm">{detailState.loadError}</p>
+			<Button class="px-5 py-3 text-xs tracking-[0.2em] uppercase" onclick={loadPage}
+				>Try Again</Button
+			>
+		</section>
+	{:else if detailState.market}
+		<div class="grid grid-cols-1 gap-6 lg:grid-cols-12">
+			<div class="space-y-6 lg:col-span-8">
+				<header class="bg-surface-container-low border-primary-container rounded-sm border-l-4 p-6">
+					<div class="mb-4 flex flex-wrap items-start justify-between gap-4">
+						<div class="space-y-2">
+							<div class="flex flex-wrap items-center gap-3">
+								<span
+									class="rounded-sm border px-2 py-0.5 text-[10px] font-bold tracking-widest uppercase {statusVariant(
+										detailState.market.status
+									)}"
+								>
+									{formatStatus(detailState.market.status)}
+								</span>
+								<span class="text-outline font-mono text-xs tracking-widest uppercase">
+									Type: {marketTypeLabel(detailState.market.market_type)}
+								</span>
+							</div>
+							<h1
+								class="font-headline text-on-surface text-2xl leading-tight font-bold md:text-3xl"
+							>
+								{detailState.market.title}
+							</h1>
+							<p class="text-primary font-mono text-sm tracking-tight opacity-80">
+								{detailState.market.symbol}
+							</p>
+						</div>
+						<div
+							class="bg-surface-container border-outline-variant/15 min-w-[220px] rounded-sm border p-4"
+						>
+							<div class="text-outline text-[10px] font-bold tracking-widest uppercase">
+								Expiry Time
+							</div>
+							<div class="text-primary-container mt-2 font-mono text-base font-bold">
+								{formatDateTime(detailState.market.expiry_time)}
+							</div>
+							{#if detailState.market.resolved_at}
+								<div class="text-outline mt-3 text-[10px] font-bold tracking-widest uppercase">
+									Resolved At
+								</div>
+								<div class="text-on-surface mt-1 font-mono text-sm">
+									{formatDateTime(detailState.market.resolved_at)}
+								</div>
+							{/if}
+						</div>
+					</div>
+				</header>
 
-        <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div class="bg-surface-container-low p-4 border border-outline-variant/15">
-            <p class="text-[10px] text-outline uppercase tracking-widest mb-2">Source</p>
-            <p class="text-sm font-headline font-bold text-on-surface">{sourceTypeLabel(detailState.market.source_type)}</p>
-          </div>
-          <div class="bg-surface-container-low p-4 border border-outline-variant/15">
-            <p class="text-[10px] text-outline uppercase tracking-widest mb-2">Rule</p>
-            <p class="text-sm font-headline font-bold text-on-surface">{operatorLabel(detailState.market.condition_operator)}</p>
-          </div>
-          <div class="bg-surface-container-low p-4 border border-outline-variant/15">
-            <p class="text-[10px] text-outline uppercase tracking-widest mb-2">Threshold</p>
-            <p class="text-sm font-mono font-bold text-on-surface">{detailState.market.threshold_value || 'Not required'}</p>
-          </div>
-          <div class="bg-surface-container-low p-4 border border-outline-variant/15">
-            <p class="text-[10px] text-outline uppercase tracking-widest mb-2">Interval</p>
-            <p class="text-sm font-mono font-bold text-on-surface">{detailState.market.source_interval || 'Not required'}</p>
-          </div>
-        </section>
+				<section class="grid grid-cols-2 gap-4 md:grid-cols-4">
+					<div class="bg-surface-container-low border-outline-variant/15 border p-4">
+						<p class="text-outline mb-2 text-[10px] tracking-widest uppercase">Source</p>
+						<p class="font-headline text-on-surface text-sm font-bold">
+							{sourceTypeLabel(detailState.market.source_type)}
+						</p>
+					</div>
+					<div class="bg-surface-container-low border-outline-variant/15 border p-4">
+						<p class="text-outline mb-2 text-[10px] tracking-widest uppercase">Rule</p>
+						<p class="font-headline text-on-surface text-sm font-bold">
+							{operatorLabel(detailState.market.condition_operator)}
+						</p>
+					</div>
+					<div class="bg-surface-container-low border-outline-variant/15 border p-4">
+						<p class="text-outline mb-2 text-[10px] tracking-widest uppercase">Threshold</p>
+						<p class="text-on-surface font-mono text-sm font-bold">
+							{detailState.market.threshold_value || 'Not required'}
+						</p>
+					</div>
+					<div class="bg-surface-container-low border-outline-variant/15 border p-4">
+						<p class="text-outline mb-2 text-[10px] tracking-widest uppercase">Interval</p>
+						<p class="text-on-surface font-mono text-sm font-bold">
+							{detailState.market.source_interval || 'Not required'}
+						</p>
+					</div>
+				</section>
 
-        <section class="bg-surface-container p-6 rounded-sm space-y-4">
-          <div class="flex items-center gap-2 border-b border-outline-variant/15 pb-3">
-            <span class="material-symbols-outlined text-primary-container text-lg">rule</span>
-            <h2 class="font-headline font-bold uppercase tracking-wider text-sm">Settlement Rule</h2>
-          </div>
-          <p class="text-on-surface-variant text-sm leading-relaxed">{settlementRule()}</p>
-          {#if detailState.market.result}
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-              <div>
-                <p class="text-[10px] text-outline uppercase tracking-widest font-bold">Result</p>
-                <p class="mt-1 text-sm font-mono text-on-surface">{detailState.market.result.toUpperCase()}</p>
-              </div>
-              <div>
-                <p class="text-[10px] text-outline uppercase tracking-widest font-bold">Settlement Value</p>
-                <p class="mt-1 text-sm font-mono text-on-surface">{detailState.market.settlement_value || 'Not available'}</p>
-              </div>
-              <div>
-                <p class="text-[10px] text-outline uppercase tracking-widest font-bold">Resolution Reason</p>
-                <p class="mt-1 text-sm text-on-surface">{detailState.market.resolution_reason || 'Not available'}</p>
-              </div>
-            </div>
-          {/if}
-        </section>
+				<section class="bg-surface-container space-y-4 rounded-sm p-6">
+					<div class="border-outline-variant/15 flex items-center gap-2 border-b pb-3">
+						<span class="material-symbols-outlined text-primary-container text-lg">rule</span>
+						<h2 class="font-headline text-sm font-bold tracking-wider uppercase">
+							Settlement Rule
+						</h2>
+					</div>
+					<p class="text-on-surface-variant text-sm leading-relaxed">{settlementRule()}</p>
+					{#if detailState.market.result}
+						<div class="grid grid-cols-1 gap-4 pt-2 md:grid-cols-3">
+							<div>
+								<p class="text-outline text-[10px] font-bold tracking-widest uppercase">Result</p>
+								<p class="text-on-surface mt-1 font-mono text-sm">
+									{detailState.market.result.toUpperCase()}
+								</p>
+							</div>
+							<div>
+								<p class="text-outline text-[10px] font-bold tracking-widest uppercase">
+									Settlement Value
+								</p>
+								<p class="text-on-surface mt-1 font-mono text-sm">
+									{detailState.market.settlement_value || 'Not available'}
+								</p>
+							</div>
+							<div>
+								<p class="text-outline text-[10px] font-bold tracking-widest uppercase">
+									Resolution Reason
+								</p>
+								<p class="text-on-surface mt-1 text-sm">
+									{detailState.market.resolution_reason || 'Not available'}
+								</p>
+							</div>
+						</div>
+					{/if}
+				</section>
 
-        <section class="bg-surface-container-low p-6 rounded-sm border border-outline-variant/15">
-          <div class="flex items-center gap-2 mb-6">
-            <span class="material-symbols-outlined text-primary-container">account_balance_wallet</span>
-            <h2 class="font-headline text-sm font-bold uppercase tracking-widest text-primary">Your Positions On This Market</h2>
-          </div>
+				<section class="bg-surface-container-low border-outline-variant/15 rounded-sm border p-6">
+					<div class="mb-6 flex items-center gap-2">
+						<span class="material-symbols-outlined text-primary-container"
+							>account_balance_wallet</span
+						>
+						<h2 class="font-headline text-primary text-sm font-bold tracking-widest uppercase">
+							Your Positions On This Market
+						</h2>
+					</div>
 
-          {#if myPositions().length > 0}
-            <div class="space-y-3">
-              {#each myPositions() as position}
-                <div class="bg-surface-container p-4 border border-outline-variant/10">
-                  <div class="flex items-start justify-between gap-4">
-                    <div>
-                      <div class="text-[10px] text-outline uppercase tracking-[0.2em]">Position Status</div>
-                      <div class="mt-1 text-sm font-headline font-bold text-on-surface">{formatStatus(position.status)}</div>
-                    </div>
-                    <span class="px-2 py-1 text-[10px] font-bold uppercase tracking-widest {position.side === 'yes' ? 'bg-primary-container/10 text-primary-container border border-primary-container/20' : 'bg-error/10 text-error border border-error/20'}">
-                      {position.side.toUpperCase()}
-                    </span>
-                  </div>
-                  <div class="grid grid-cols-2 gap-4 mt-4 text-xs">
-                    <div>
-                      <div class="text-outline uppercase tracking-[0.2em]">Stake</div>
-                      <div class="mt-1 font-mono text-on-surface">{position.stake_amount}</div>
-                    </div>
-                    <div>
-                      <div class="text-outline uppercase tracking-[0.2em]">Potential Payout</div>
-                      <div class="mt-1 font-mono text-on-surface">{position.potential_payout}</div>
-                    </div>
-                  </div>
-                </div>
-              {/each}
-            </div>
-          {:else}
-            <p class="text-sm text-outline">You have not placed a position on this market yet.</p>
-          {/if}
-        </section>
-      </div>
+					{#if myPositions().length > 0}
+						<div class="space-y-3">
+							{#each myPositions() as position}
+								<div class="bg-surface-container border-outline-variant/10 border p-4">
+									<div class="flex items-start justify-between gap-4">
+										<div>
+											<div class="text-outline text-[10px] tracking-[0.2em] uppercase">
+												Position Status
+											</div>
+											<div class="font-headline text-on-surface mt-1 text-sm font-bold">
+												{formatStatus(position.status)}
+											</div>
+										</div>
+										<span
+											class="px-2 py-1 text-[10px] font-bold tracking-widest uppercase {position.side ===
+											'yes'
+												? 'bg-primary-container/10 text-primary-container border-primary-container/20 border'
+												: 'bg-error/10 text-error border-error/20 border'}"
+										>
+											{position.side.toUpperCase()}
+										</span>
+									</div>
+									<div class="mt-4 grid grid-cols-2 gap-4 text-xs">
+										<div>
+											<div class="text-outline tracking-[0.2em] uppercase">Stake</div>
+											<div class="text-on-surface mt-1 font-mono">{position.stake_amount}</div>
+										</div>
+										<div>
+											<div class="text-outline tracking-[0.2em] uppercase">Potential Payout</div>
+											<div class="text-on-surface mt-1 font-mono">{position.potential_payout}</div>
+										</div>
+									</div>
+								</div>
+							{/each}
+						</div>
+					{:else}
+						<p class="text-outline text-sm">You have not placed a position on this market yet.</p>
+					{/if}
+				</section>
+			</div>
 
-      <div class="lg:col-span-4 space-y-6">
-        <section class="bg-surface-container-high p-6 rounded-sm border border-outline-variant/20 shadow-[0_0_12px_rgba(0,219,233,0.3)] sticky top-24">
-          <h2 class="text-xs font-bold uppercase tracking-widest text-outline mb-6">
-            {tradingClosed() ? 'Market Status' : 'Place Position'}
-          </h2>
+			<div class="space-y-6 lg:col-span-4">
+				<section
+					class="bg-surface-container-high border-outline-variant/20 sticky top-24 rounded-sm border p-6 shadow-[0_0_12px_rgba(0,219,233,0.3)]"
+				>
+					<h2 class="text-outline mb-6 text-xs font-bold tracking-widest uppercase">
+						{tradingClosed() ? 'Market Status' : 'Place Position'}
+					</h2>
 
-          {#if tradingClosed()}
-            <div class="space-y-4">
-              <p class="text-sm text-on-surface-variant leading-relaxed">Trading is closed for this market because it is currently {formatStatus(detailState.market.status)}.</p>
-              {#if detailState.market.result}
-                <div class="bg-surface-container p-4 rounded-sm border border-outline-variant/15">
-                  <div class="text-[10px] text-outline uppercase tracking-[0.2em]">Final Result</div>
-                  <div class="mt-2 text-2xl font-headline font-bold text-primary-container">{detailState.market.result.toUpperCase()}</div>
-                </div>
-              {/if}
-            </div>
-          {:else}
-            <form class="space-y-4" onsubmit={handleSubmit}>
-              <div class="grid grid-cols-2 gap-3">
-                {#each ['yes', 'no'] as side}
-                  <button
-                    class="flex flex-col items-center justify-center p-4 border transition-all rounded-sm {selectedSide === side ? side === 'yes' ? 'bg-primary-container/20 border-primary-container' : 'bg-error/20 border-error' : side === 'yes' ? 'bg-surface-container border-primary-container/30 hover:bg-primary-container/10' : 'bg-surface-container border-error/30 hover:bg-error/10'}"
-                    onclick={() => selectedSide = side as 'yes' | 'no'}
-                    type="button"
-                  >
-                    <span class="{side === 'yes' ? 'text-primary-container' : 'text-error'} font-headline font-bold text-lg uppercase">{side}</span>
-                  </button>
-                {/each}
-              </div>
+					{#if tradingClosed()}
+						<div class="space-y-4">
+							<p class="text-on-surface-variant text-sm leading-relaxed">
+								Trading is closed for this market because it is currently {formatStatus(
+									detailState.market.status
+								)}.
+							</p>
+							{#if detailState.market.result}
+								<div class="bg-surface-container border-outline-variant/15 rounded-sm border p-4">
+									<div class="text-outline text-[10px] tracking-[0.2em] uppercase">
+										Final Result
+									</div>
+									<div class="font-headline text-primary-container mt-2 text-2xl font-bold">
+										{detailState.market.result.toUpperCase()}
+									</div>
+								</div>
+							{/if}
+						</div>
+					{:else}
+						<form class="space-y-4" onsubmit={handleSubmit}>
+							<div class="grid grid-cols-2 gap-3">
+								{#each ['yes', 'no'] as side}
+									<button
+										class="flex flex-col items-center justify-center rounded-sm border p-4 transition-all {selectedSide ===
+										side
+											? side === 'yes'
+												? 'bg-primary-container/20 border-primary-container'
+												: 'bg-error/20 border-error'
+											: side === 'yes'
+												? 'bg-surface-container border-primary-container/30 hover:bg-primary-container/10'
+												: 'bg-surface-container border-error/30 hover:bg-error/10'}"
+										onclick={() => (selectedSide = side as 'yes' | 'no')}
+										type="button"
+									>
+										<span
+											class="{side === 'yes'
+												? 'text-primary-container'
+												: 'text-error'} font-headline text-lg font-bold uppercase">{side}</span
+										>
+									</button>
+								{/each}
+							</div>
 
-              <label class="block space-y-2">
-                <div class="flex justify-between items-center px-1">
-                  <span class="text-[10px] text-outline uppercase tracking-widest font-bold">Stake Amount</span>
-                  <span class="text-[10px] text-outline uppercase font-mono">Available: {detailState.availableBalance}</span>
-                </div>
-                <div class="relative group">
-                  <input
-                    bind:value={stakeAmount}
-                    class="w-full bg-surface-container-lowest border border-outline-variant/20 text-xl font-mono p-4 pr-16 rounded-sm focus:ring-1 focus:ring-primary-container/30 focus:outline-none placeholder:text-outline-variant"
-                    placeholder="0.00"
-                    required
-                    step="0.00000001"
-                    type="number"
-                  />
-                  <span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-outline">USDC</span>
-                </div>
-              </label>
+							<label class="block space-y-2">
+								<div class="flex items-center justify-between px-1">
+									<span class="text-outline text-[10px] font-bold tracking-widest uppercase"
+										>Stake Amount</span
+									>
+									<span class="text-outline font-mono text-[10px] uppercase"
+										>Available: {detailState.availableBalance}</span
+									>
+								</div>
+								<div class="group relative">
+									<input
+										bind:value={stakeAmount}
+										class="bg-surface-container-lowest border-outline-variant/20 focus:ring-primary-container/30 placeholder:text-outline-variant w-full rounded-sm border p-4 pr-16 font-mono text-xl focus:ring-1 focus:outline-none"
+										placeholder="0.00"
+										required
+										step="0.00000001"
+										type="number"
+									/>
+									<span
+										class="text-outline absolute top-1/2 right-4 -translate-y-1/2 text-sm font-bold"
+										>USDC</span
+									>
+								</div>
+							</label>
 
-              <div class="bg-surface-container p-4 rounded-sm space-y-3">
-                <div class="flex justify-between items-center text-xs">
-                  <span class="text-outline">Selected Side</span>
-                  <span class="{selectedSide === 'yes' ? 'text-primary-container' : 'text-error'} font-mono font-bold uppercase">{selectedSide}</span>
-                </div>
-                <div class="flex justify-between items-center text-xs">
-                  <span class="text-outline">Locked Balance</span>
-                  <span class="text-on-surface font-mono">{detailState.lockedBalance}</span>
-                </div>
-              </div>
+							<div class="bg-surface-container space-y-3 rounded-sm p-4">
+								<div class="flex items-center justify-between text-xs">
+									<span class="text-outline">Selected Side</span>
+									<span
+										class="{selectedSide === 'yes'
+											? 'text-primary-container'
+											: 'text-error'} font-mono font-bold uppercase">{selectedSide}</span
+									>
+								</div>
+								<div class="flex items-center justify-between text-xs">
+									<span class="text-outline">Locked Balance</span>
+									<span class="text-on-surface font-mono">{detailState.lockedBalance}</span>
+								</div>
+							</div>
 
-              {#if detailState.submitError}
-                <div class="bg-surface-container-low border border-error/20 p-4 text-sm text-error">
-                  {detailState.submitError}
-                </div>
-              {/if}
+							{#if detailState.submitError}
+								<div class="bg-surface-container-low border-error/20 text-error border p-4 text-sm">
+									{detailState.submitError}
+								</div>
+							{/if}
 
-              {#if detailState.successMessage}
-                <div class="bg-surface-container-low border border-primary-container/20 p-4 text-sm text-primary">
-                  {detailState.successMessage}
-                </div>
-              {/if}
+							{#if detailState.successMessage}
+								<div
+									class="bg-surface-container-low border-primary-container/20 text-primary border p-4 text-sm"
+								>
+									{detailState.successMessage}
+								</div>
+							{/if}
 
-              <button
-                class="w-full gradient-primary text-on-primary-fixed py-4 font-headline font-bold uppercase tracking-[0.2em] rounded-sm hover:opacity-90 active:scale-[0.99] transition-all disabled:opacity-70"
-                disabled={detailState.submitStatus === 'submitting'}
-                type="submit"
-              >
-                {detailState.submitStatus === 'submitting' ? 'Placing Position...' : 'Place Position'}
-              </button>
-            </form>
-          {/if}
-        </section>
+							<button
+								class="gradient-primary text-on-primary-fixed font-headline w-full rounded-sm py-4 font-bold tracking-[0.2em] uppercase transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-70"
+								disabled={detailState.submitStatus === 'submitting'}
+								type="submit"
+							>
+								{detailState.submitStatus === 'submitting'
+									? 'Placing Position...'
+									: 'Place Position'}
+							</button>
+						</form>
+					{/if}
+				</section>
 
-        <section class="space-y-4">
-          <h2 class="font-headline font-bold uppercase tracking-widest text-xs">Other Active Markets</h2>
-          <div class="space-y-3">
-            {#if detailState.relatedMarkets.length > 0}
-              {#each detailState.relatedMarkets as relatedMarket}
-                <a class="block bg-surface-container-low p-4 border-l-2 border-outline-variant hover:border-primary-container transition-all group" href={`/markets/${relatedMarket.id}`}>
-                  <p class="text-xs font-bold text-on-surface mb-1 group-hover:text-primary transition-colors">{relatedMarket.title}</p>
-                  <div class="flex justify-between items-center gap-4">
-                    <span class="text-[10px] text-outline uppercase font-mono">{relatedMarket.symbol}</span>
-                    <span class="text-[10px] text-primary-container uppercase font-mono">{formatStatus(relatedMarket.status)}</span>
-                  </div>
-                </a>
-              {/each}
-            {:else}
-              <div class="bg-surface-container-low p-4 border border-outline-variant/15 text-sm text-outline">
-                No other active markets are available right now.
-              </div>
-            {/if}
-          </div>
-        </section>
-      </div>
-    </div>
-  {/if}
+				<section class="space-y-4">
+					<h2 class="font-headline text-xs font-bold tracking-widest uppercase">
+						Other Active Markets
+					</h2>
+					<div class="space-y-3">
+						{#if detailState.relatedMarkets.length > 0}
+							{#each detailState.relatedMarkets as relatedMarket}
+								<a
+									class="bg-surface-container-low border-outline-variant hover:border-primary-container group block border-l-2 p-4 transition-all"
+									href={`/markets/${relatedMarket.id}`}
+								>
+									<p
+										class="text-on-surface group-hover:text-primary mb-1 text-xs font-bold transition-colors"
+									>
+										{relatedMarket.title}
+									</p>
+									<div class="flex items-center justify-between gap-4">
+										<span class="text-outline font-mono text-[10px] uppercase"
+											>{relatedMarket.symbol}</span
+										>
+										<span class="text-primary-container font-mono text-[10px] uppercase"
+											>{formatStatus(relatedMarket.status)}</span
+										>
+									</div>
+								</a>
+							{/each}
+						{:else}
+							<div
+								class="bg-surface-container-low border-outline-variant/15 text-outline border p-4 text-sm"
+							>
+								No other active markets are available right now.
+							</div>
+						{/if}
+					</div>
+				</section>
+			</div>
+		</div>
+	{/if}
 </main>

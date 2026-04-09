@@ -21,7 +21,7 @@ func NewBalancePostgresRepository(queryer Queryer) *BalancePostgresRepository {
 func (r *BalancePostgresRepository) Create(ctx context.Context, input CreateBalanceInput) (Balance, error) {
 	const query = `
 INSERT INTO player_balances (player_id, available_balance, locked_balance)
-VALUES ($1, $2, $3)
+VALUES ($1, $2::numeric, $3::numeric)
 RETURNING player_id, available_balance, locked_balance, updated_at;
 `
 

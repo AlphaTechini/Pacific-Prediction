@@ -14,13 +14,24 @@ import (
 type Config struct {
 	AppEnv        string
 	AppAddr       string
-	DatabaseURL   string
+	Database      DatabaseConfig
 	MigrationsDir string
 	Auth          AuthConfig
 	Balance       BalanceConfig
 	Pacifica      PacificaConfig
 	Realtime      RealtimeConfig
 	Settlement    SettlementConfig
+}
+
+type DatabaseConfig struct {
+	URL               string
+	MinConns          int32
+	MinIdleConns      int32
+	MaxConns          int32
+	MaxConnLifetime   time.Duration
+	MaxConnIdleTime   time.Duration
+	HealthCheckPeriod time.Duration
+	ConnectTimeout    time.Duration
 }
 
 type AuthConfig struct {
@@ -59,6 +70,11 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	databaseConfig, err := loadDatabaseConfig()
+	if err != nil {
+		return Config{}, err
+	}
+
 	authConfig, err := loadAuthConfig()
 	if err != nil {
 		return Config{}, err
@@ -87,17 +103,13 @@ func Load() (Config, error) {
 	cfg := Config{
 		AppEnv:        getEnv("APP_ENV", "development"),
 		AppAddr:       getEnv("APP_ADDR", ":8080"),
-		DatabaseURL:   os.Getenv("DATABASE_URL"),
+		Database:      databaseConfig,
 		MigrationsDir: resolveMigrationsDir(getEnv("MIGRATIONS_DIR", defaultMigrationsDir()), dotEnvMeta),
 		Auth:          authConfig,
 		Balance:       balanceConfig,
 		Pacifica:      pacificaConfig,
 		Realtime:      realtimeConfig,
 		Settlement:    settlementConfig,
-	}
-
-	if cfg.DatabaseURL == "" {
-		return Config{}, fmt.Errorf("DATABASE_URL is required")
 	}
 
 	return cfg, nil
@@ -256,6 +268,87 @@ func fileExists(path string) bool {
 	return !info.IsDir()
 }
 
+func loadDatabaseConfig() (DatabaseConfig, error) {
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		return DatabaseConfig{}, fmt.Errorf("DATABASE_URL is required")
+	}
+
+	minConns, err := parseOptionalInt32("DB_MIN_CONNS", 1)
+	if err != nil {
+		return DatabaseConfig{}, err
+	}
+
+	minIdleConns, err := parseOptionalInt32("DB_MIN_IDLE_CONNS", minConns)
+	if err != nil {
+		return DatabaseConfig{}, err
+	}
+
+	maxConns, err := parseOptionalInt32("DB_MAX_CONNS", 4)
+	if err != nil {
+		return DatabaseConfig{}, err
+	}
+
+	maxConnLifetime, err := parseOptionalDuration("DB_MAX_CONN_LIFETIME", 24*time.Hour)
+	if err != nil {
+		return DatabaseConfig{}, err
+	}
+
+	maxConnIdleTime, err := parseOptionalDuration("DB_MAX_CONN_IDLE_TIME", 2*time.Hour)
+	if err != nil {
+		return DatabaseConfig{}, err
+	}
+
+	healthCheckPeriod, err := parseOptionalDuration("DB_HEALTH_CHECK_PERIOD", 30*time.Second)
+	if err != nil {
+		return DatabaseConfig{}, err
+	}
+
+	connectTimeout, err := parseOptionalDuration("DB_CONNECT_TIMEOUT", 15*time.Second)
+	if err != nil {
+		return DatabaseConfig{}, err
+	}
+
+	if minConns < 0 {
+		return DatabaseConfig{}, fmt.Errorf("DB_MIN_CONNS must be zero or greater")
+	}
+	if minIdleConns < 0 {
+		return DatabaseConfig{}, fmt.Errorf("DB_MIN_IDLE_CONNS must be zero or greater")
+	}
+	if maxConns <= 0 {
+		return DatabaseConfig{}, fmt.Errorf("DB_MAX_CONNS must be greater than zero")
+	}
+	if minConns > maxConns {
+		return DatabaseConfig{}, fmt.Errorf("DB_MIN_CONNS must be less than or equal to DB_MAX_CONNS")
+	}
+	if minIdleConns > maxConns {
+		return DatabaseConfig{}, fmt.Errorf("DB_MIN_IDLE_CONNS must be less than or equal to DB_MAX_CONNS")
+	}
+	if maxConnLifetime <= 0 {
+		return DatabaseConfig{}, fmt.Errorf("DB_MAX_CONN_LIFETIME must be greater than zero")
+	}
+	if maxConnIdleTime <= 0 {
+		return DatabaseConfig{}, fmt.Errorf("DB_MAX_CONN_IDLE_TIME must be greater than zero")
+	}
+	if healthCheckPeriod <= 0 {
+		return DatabaseConfig{}, fmt.Errorf("DB_HEALTH_CHECK_PERIOD must be greater than zero")
+	}
+	if connectTimeout <= 0 {
+		return DatabaseConfig{}, fmt.Errorf("DB_CONNECT_TIMEOUT must be greater than zero")
+	}
+
+	return DatabaseConfig{
+		URL:               databaseURL,
+		MinConns:          minConns,
+		MinIdleConns:      minIdleConns,
+		MaxConns:          maxConns,
+		MaxConnLifetime:   maxConnLifetime,
+		MaxConnIdleTime:   maxConnIdleTime,
+		HealthCheckPeriod: healthCheckPeriod,
+		ConnectTimeout:    connectTimeout,
+	}, nil
+}
+
 func loadAuthConfig() (AuthConfig, error) {
 	sessionTTLRaw := os.Getenv("AUTH_SESSION_TTL")
 	if sessionTTLRaw == "" {
@@ -303,6 +396,34 @@ func loadAuthConfig() (AuthConfig, error) {
 		CookieDomain:   os.Getenv("AUTH_COOKIE_DOMAIN"),
 		CookiePath:     cookiePath,
 	}, nil
+}
+
+func parseOptionalInt32(key string, fallback int32) (int32, error) {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback, nil
+	}
+
+	value, err := strconv.ParseInt(raw, 10, 32)
+	if err != nil {
+		return 0, fmt.Errorf("parse %s: %w", key, err)
+	}
+
+	return int32(value), nil
+}
+
+func parseOptionalDuration(key string, fallback time.Duration) (time.Duration, error) {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback, nil
+	}
+
+	value, err := time.ParseDuration(raw)
+	if err != nil {
+		return 0, fmt.Errorf("parse %s: %w", key, err)
+	}
+
+	return value, nil
 }
 
 func loadBalanceConfig() (BalanceConfig, error) {

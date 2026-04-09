@@ -31,7 +31,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	db, err := storage.NewDB(ctx, cfg.DatabaseURL)
+	db, err := storage.NewDB(ctx, cfg.Database)
 	if err != nil {
 		log.Fatalf("connect database: %v", err)
 	}
