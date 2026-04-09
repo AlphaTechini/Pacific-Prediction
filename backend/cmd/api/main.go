@@ -76,7 +76,10 @@ func main() {
 		Validator:          positionValidator,
 	})
 	settlementService := settlement.NewService(settlement.ServiceDeps{
-		MarketRepository: marketRepository,
+		MarketRepository:   marketRepository,
+		PacificaClient:     pacificaRESTClient,
+		TxManager:          app.Dependencies.TxManager,
+		PriceRetryInterval: cfg.Settlement.PriceRetryInterval,
 	})
 	settlementWorker := settlement.NewWorker(settlement.WorkerDeps{
 		Logger:             log.Default(),

@@ -80,4 +80,5 @@
 - The expiry scanner uses the market repository to discover due active markets by `expiry_time` and hands off only orchestration-level attempts until per-market settlement logic is implemented.
 - Price settlement should group due markets into batched Pacifica price fetches instead of creating per-market cron jobs.
 - The settlement worker should maintain a configurable near-expiry lookahead window and retry interval for price-fetch planning.
+- T6.4 resolves due price-threshold markets through the settlement service, validates Pacifica timestamps before expiry, writes a settlement audit row, and marks the market resolved in one transaction.
 

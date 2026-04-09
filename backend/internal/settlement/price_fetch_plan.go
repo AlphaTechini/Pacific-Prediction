@@ -29,9 +29,21 @@ func normalizePriceFetchPlanFilter(filter PriceFetchPlanFilter) PriceFetchPlanFi
 }
 
 func buildPriceFetchBatches(items []storage.Market, after time.Time) []PriceFetchBatch {
+	return buildGroupedPriceFetchBatches(items, func(item storage.Market) bool {
+		return isPlannablePriceMarket(item, after)
+	})
+}
+
+func buildDuePriceFetchBatches(items []storage.Market) []PriceFetchBatch {
+	return buildGroupedPriceFetchBatches(items, func(item storage.Market) bool {
+		return isDuePriceMarket(item)
+	})
+}
+
+func buildGroupedPriceFetchBatches(items []storage.Market, include func(item storage.Market) bool) []PriceFetchBatch {
 	batchesByExpiry := map[time.Time][]PriceFetchTarget{}
 	for _, item := range items {
-		if !isPlannablePriceMarket(item, after) {
+		if !include(item) {
 			continue
 		}
 
@@ -84,6 +96,20 @@ func isPlannablePriceMarket(item storage.Market, after time.Time) bool {
 	}
 
 	return !item.ExpiryTime.Before(after)
+}
+
+func isDuePriceMarket(item storage.Market) bool {
+	if item.Status != domain.MarketStatusActive {
+		return false
+	}
+	if item.MarketType != domain.MarketTypePriceThreshold {
+		return false
+	}
+	if item.SourceType != domain.SourceTypeMarkPrice {
+		return false
+	}
+
+	return true
 }
 
 func normalizeExpirySecond(value time.Time) time.Time {

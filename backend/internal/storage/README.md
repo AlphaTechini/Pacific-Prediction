@@ -24,6 +24,8 @@ I use this folder for PostgreSQL repositories, transaction boundaries, and persi
 - To find market PostgreSQL persistence visit [market_postgres_repository.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/storage/market_postgres_repository.go).
 - To find position persistence contracts visit [position_repository.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/storage/position_repository.go).
 - To find position PostgreSQL persistence visit [position_postgres_repository.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/storage/position_postgres_repository.go).
+- To find settlement persistence contracts visit [settlement_repository.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/storage/settlement_repository.go).
+- To find settlement PostgreSQL persistence visit [settlement_postgres_repository.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/storage/settlement_postgres_repository.go).
 - To find database connection setup visit [db.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/storage/db.go).
 - To find migration runner logic visit [migrator.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/storage/migrator.go).
 - To find transaction helpers visit [tx.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/storage/tx.go) and [transaction_contracts.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/storage/transaction_contracts.go).
@@ -36,4 +38,5 @@ I use this folder for PostgreSQL repositories, transaction boundaries, and persi
 - The PostgreSQL persistence boundary can be found in [README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/storage/README.md).
 - The transaction-safe repository contract pattern can be found in [README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/storage/README.md).
 - The position persistence connection can be found in [position_repository.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/storage/position_repository.go) and [position_postgres_repository.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/storage/position_postgres_repository.go).
+- The settlement audit persistence connection can be found in [settlement_repository.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/storage/settlement_repository.go) and [settlement_postgres_repository.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/storage/settlement_postgres_repository.go).
 - The database schema planning can be found in [../../migrations/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/migrations/README.md).

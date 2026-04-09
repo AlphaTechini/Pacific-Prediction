@@ -200,7 +200,48 @@ LIMIT $3;
 }
 
 func (r *MarketPostgresRepository) UpdateSettlement(ctx context.Context, input UpdateMarketSettlementInput) (Market, error) {
-	return Market{}, fmt.Errorf("update market settlement is not implemented yet")
+	const query = `
+UPDATE markets
+SET
+    status = $2,
+    result = $3,
+    settlement_value = NULLIF($4, '')::numeric,
+    resolved_at = $5,
+    resolution_reason = $6
+WHERE id = $1
+RETURNING
+    id,
+    title,
+    symbol,
+    market_type,
+    condition_operator,
+    COALESCE(threshold_value::text, ''),
+    source_type,
+    COALESCE(source_interval, ''),
+    COALESCE(reference_value::text, ''),
+    expiry_time,
+    status,
+    COALESCE(result, ''),
+    COALESCE(settlement_value::text, ''),
+    resolved_at,
+    COALESCE(resolution_reason, ''),
+    created_by_player_id,
+    created_at;
+`
+
+	return r.scanMarketRow(
+		r.queryer.QueryRow(
+			ctx,
+			query,
+			string(input.MarketID),
+			string(input.Status),
+			string(input.Result),
+			input.SettlementValue,
+			input.ResolvedAt,
+			input.ResolutionReason,
+		),
+		"update market settlement",
+	)
 }
 
 func (r *MarketPostgresRepository) scanMarketRow(row interface{ Scan(...any) error }, operation string) (Market, error) {

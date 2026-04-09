@@ -26,4 +26,5 @@ type PriceResolution struct {
 
 type PriceResolver interface {
 	Resolve(ctx context.Context, market PriceMarket) (PriceResolution, error)
+	ResolveBatch(ctx context.Context, markets []PriceMarket) ([]PriceResolution, error)
 }
