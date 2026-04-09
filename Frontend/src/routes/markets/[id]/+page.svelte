@@ -182,6 +182,23 @@
 		return `This market uses ${operatorLabel(market.condition_operator).toLowerCase()} as its settlement rule.`;
 	}
 
+	function timingLabel(): string {
+		const market = detailState.market;
+		if (!market) {
+			return 'Expiry Time';
+		}
+
+		if (market.market_type === 'funding_threshold') {
+			return 'Funding Checkpoint';
+		}
+
+		if (market.market_type === 'candle_direction') {
+			return 'Candle Close';
+		}
+
+		return 'Expiry Time';
+	}
+
 	function myPositions(): PositionResponse[] {
 		const marketID = detailState.market?.id;
 		if (!marketID) {
@@ -298,7 +315,7 @@
 							class="bg-surface-container border-outline-variant/15 min-w-[220px] rounded-sm border p-4"
 						>
 							<div class="text-outline text-[10px] font-bold tracking-widest uppercase">
-								Expiry Time
+								{timingLabel()}
 							</div>
 							<div class="text-primary-container mt-2 font-mono text-base font-bold">
 								{formatDateTime(detailState.market.expiry_time)}

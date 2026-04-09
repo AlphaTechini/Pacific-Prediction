@@ -56,3 +56,23 @@ func CandleWindowForExpiry(expiry time.Time, interval string) (time.Time, time.T
 
 	return normalizedExpiry.Add(-duration), normalizedExpiry, nil
 }
+
+func NextCandleExpiryFromCreation(createdAt time.Time, interval string) (time.Time, error) {
+	duration, err := CandleIntervalDuration(interval)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	normalizedCreatedAt := NormalizeTime(createdAt)
+	if normalizedCreatedAt.IsZero() {
+		return time.Time{}, fmt.Errorf("created time is required")
+	}
+
+	target := normalizedCreatedAt.Add(duration)
+	remainder := target.UnixNano() % duration.Nanoseconds()
+	if remainder == 0 {
+		return target, nil
+	}
+
+	return target.Add(time.Duration(duration.Nanoseconds() - remainder)), nil
+}

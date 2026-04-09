@@ -77,15 +77,11 @@ func (s *validationService) ValidateCreateInput(ctx context.Context, input Creat
 		return domain.NewValidationError("condition_operator", "operator is not supported for market type", input.ConditionOperator)
 	}
 
-	if err := validateExpiryTime(s.now(), input.ExpiryTime); err != nil {
-		return err
-	}
-
 	switch input.MarketType {
 	case domain.MarketTypePriceThreshold:
-		return validatePriceThresholdInput(input)
+		return validatePriceThresholdInput(s.now(), input)
 	case domain.MarketTypeCandleDirection:
-		return validateCandleDirectionInput(input, model)
+		return validateCandleDirectionInput(s.now(), input, model)
 	case domain.MarketTypeFundingThreshold:
 		return validateFundingInput(input, model)
 	default:
@@ -131,7 +127,11 @@ func validateExpiryTime(now, expiry time.Time) error {
 	return nil
 }
 
-func validatePriceThresholdInput(input CreateInput) error {
+func validatePriceThresholdInput(now time.Time, input CreateInput) error {
+	if err := validateExpiryTime(now, input.ExpiryTime); err != nil {
+		return err
+	}
+
 	if input.SourceInterval != "" {
 		return domain.NewValidationError("source_interval", "price threshold markets do not use source intervals", input.SourceInterval)
 	}
@@ -143,7 +143,7 @@ func validatePriceThresholdInput(input CreateInput) error {
 	return nil
 }
 
-func validateCandleDirectionInput(input CreateInput, model ValidationModel) error {
+func validateCandleDirectionInput(now time.Time, input CreateInput, model ValidationModel) error {
 	if input.ThresholdValue != "" {
 		return domain.NewValidationError("threshold_value", "candle direction markets do not use threshold values", input.ThresholdValue)
 	}
@@ -154,6 +154,10 @@ func validateCandleDirectionInput(input CreateInput, model ValidationModel) erro
 
 	if !containsString(model.AllowedIntervals, input.SourceInterval) {
 		return domain.NewValidationError("source_interval", "unsupported candle interval", input.SourceInterval)
+	}
+
+	if err := validateExpiryTime(now, input.ExpiryTime); err != nil {
+		return err
 	}
 
 	if _, _, err := domain.CandleWindowForExpiry(input.ExpiryTime, input.SourceInterval); err != nil {

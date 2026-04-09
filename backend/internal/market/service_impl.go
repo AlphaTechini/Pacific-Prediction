@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strings"
+	"time"
 
 	"prediction/internal/domain"
 	"prediction/internal/pacifica"
@@ -85,7 +86,8 @@ func NewServiceWithDeps(deps ServiceDeps) Service {
 }
 
 func (s *service) Create(ctx context.Context, input CreateInput) (Record, error) {
-	normalized := normalizeCreateInput(input)
+	now := domain.NowUTC()
+	normalized := normalizeCreateInput(input, now)
 	if err := s.validator.ValidateCreateInput(ctx, normalized); err != nil {
 		return Record{}, err
 	}
@@ -271,22 +273,36 @@ func (s *service) GetCreateContext(ctx context.Context) (CreateContext, error) {
 }
 
 func (s *service) ValidateCreateInput(ctx context.Context, input CreateInput) error {
-	return s.validator.ValidateCreateInput(ctx, normalizeCreateInput(input))
+	return s.validator.ValidateCreateInput(ctx, normalizeCreateInput(input, domain.NowUTC()))
 }
 
 func (s *service) SupportedValidationModels() []ValidationModel {
 	return SupportedValidationModels()
 }
 
-func normalizeCreateInput(input CreateInput) CreateInput {
+func normalizeCreateInput(input CreateInput, now time.Time) CreateInput {
 	input.Title = strings.TrimSpace(input.Title)
 	input.Symbol = strings.ToUpper(strings.TrimSpace(input.Symbol))
 	input.CreatorStakeAmount = strings.TrimSpace(input.CreatorStakeAmount)
 	input.ThresholdValue = strings.TrimSpace(input.ThresholdValue)
 	input.SourceInterval = strings.TrimSpace(input.SourceInterval)
 	input.ReferenceValue = strings.TrimSpace(input.ReferenceValue)
-	input.ExpiryTime = domain.NormalizeTime(input.ExpiryTime)
+	input.ExpiryTime = deriveCreateExpiryTime(input, now)
 	return input
+}
+
+func deriveCreateExpiryTime(input CreateInput, now time.Time) time.Time {
+	switch input.MarketType {
+	case domain.MarketTypeCandleDirection:
+		expiryTime, err := domain.NextCandleExpiryFromCreation(now, input.SourceInterval)
+		if err == nil {
+			return expiryTime
+		}
+	case domain.MarketTypeFundingThreshold:
+		return domain.NextFundingEpochFromCreation(now)
+	}
+
+	return domain.NormalizeTime(input.ExpiryTime)
 }
 
 func newCreatorPositionID() (domain.PositionID, error) {

@@ -67,7 +67,7 @@ export interface CreateMarketRequest {
 	source_type: string;
 	source_interval: string;
 	reference_value: string;
-	expiry_time: string;
+	expiry_time?: string;
 }
 
 export interface CreateMarketResponse extends MarketResponse {}

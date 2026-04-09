@@ -15,6 +15,7 @@ I use this folder for shared backend domain vocabulary that multiple modules nee
 - To find shared ID aliases visit [ids.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/domain/ids.go).
 - To find shared market vocabulary visit [market.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/domain/market.go).
 - To find shared candle interval helpers visit [candle_interval.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/domain/candle_interval.go).
+- To find shared funding epoch helpers visit [funding_epoch.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/domain/funding_epoch.go).
 - To find shared decimal and fixed-payout helpers visit [decimal.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/domain/decimal.go).
 - To find shared position vocabulary visit [position.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/domain/position.go).
 - To find shared UTC timestamp helpers visit [time.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/domain/time.go).
@@ -24,5 +25,5 @@ I use this folder for shared backend domain vocabulary that multiple modules nee
 
 ## Component And Connection Map
 
-- The shared backend domain vocabulary can be found in [market.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/domain/market.go), [candle_interval.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/domain/candle_interval.go), [decimal.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/domain/decimal.go), [position.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/domain/position.go), and [ids.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/domain/ids.go).
+- The shared backend domain vocabulary can be found in [market.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/domain/market.go), [candle_interval.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/domain/candle_interval.go), [funding_epoch.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/domain/funding_epoch.go), [decimal.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/domain/decimal.go), [position.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/domain/position.go), and [ids.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/domain/ids.go).
 - The PostgreSQL persistence boundary that reuses these types can be found in [../storage/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/storage/README.md).

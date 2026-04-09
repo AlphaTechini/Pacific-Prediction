@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"prediction/internal/auth"
@@ -115,10 +116,13 @@ func NewCreateMarketHandler(controller market.Controller) http.Handler {
 			return
 		}
 
-		expiryTime, err := time.Parse(time.RFC3339, request.ExpiryTime)
-		if err != nil {
-			writeJSON(w, http.StatusBadRequest, errorResponse{Error: "expiry_time must be RFC3339"})
-			return
+		var expiryTime time.Time
+		if strings.TrimSpace(request.ExpiryTime) != "" {
+			expiryTime, err = time.Parse(time.RFC3339, request.ExpiryTime)
+			if err != nil {
+				writeJSON(w, http.StatusBadRequest, errorResponse{Error: "expiry_time must be RFC3339"})
+				return
+			}
 		}
 
 		record, err := controller.Create(r.Context(), market.CreateInput{
