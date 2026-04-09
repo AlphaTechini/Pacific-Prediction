@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 
 	import type {
@@ -127,6 +128,10 @@
 		return !['positive', 'negative'].includes(form.conditionOperator);
 	}
 
+	function usesAutomaticExpiry(): boolean {
+		return selectedModel()?.requires_interval ?? false;
+	}
+
 	function operatorLabel(value: string): string {
 		const labels: Record<string, string> = {
 			gt: 'Greater Than',
@@ -185,16 +190,16 @@
 		}
 
 		if (model.market_type === 'candle_direction') {
-			return `This market resolves from the ${form.sourceInterval || 'selected'} candle close.`;
+			return `This market auto-locks to the next ${form.sourceInterval || 'selected'} candle close after you submit it.`;
 		}
 
 		if (model.market_type === 'funding_threshold') {
 			if (form.conditionOperator === 'positive') {
-				return 'This market settles YES when the funding value is above zero at the funding checkpoint.';
+				return 'This market targets the next funding checkpoint after submission and settles YES when funding is above zero.';
 			}
 
 			if (form.conditionOperator === 'negative') {
-				return 'This market settles YES when the funding value is below zero at the funding checkpoint.';
+				return 'This market targets the next funding checkpoint after submission and settles YES when funding is below zero.';
 			}
 		}
 
@@ -204,6 +209,43 @@
 		}
 
 		return `This market uses ${operatorLabel(form.conditionOperator).toLowerCase()} as the settlement rule.`;
+	}
+
+	function timingSummary(): string {
+		const model = selectedModel();
+		if (!model) {
+			return 'Timing is set when the market type is selected.';
+		}
+
+		if (model.market_type === 'candle_direction') {
+			return `Auto-set to the next ${form.sourceInterval || 'selected'} candle close after submission.`;
+		}
+
+		if (model.market_type === 'funding_threshold') {
+			return `Auto-set to the next funding checkpoint after submission (${nextFundingCheckpointPreview()}).`;
+		}
+
+		return form.expiryTime || 'Pick an expiry';
+	}
+
+	function nextFundingCheckpointPreview(): string {
+		const currentTime = new Date();
+		const nextHour = new Date(
+			currentTime.getFullYear(),
+			currentTime.getMonth(),
+			currentTime.getDate(),
+			currentTime.getHours() + 1,
+			0,
+			0,
+			0
+		);
+
+		return new Intl.DateTimeFormat(undefined, {
+			month: 'short',
+			day: 'numeric',
+			hour: 'numeric',
+			minute: '2-digit'
+		}).format(nextHour);
 	}
 
 	async function handleSubmit(event: SubmitEvent): Promise<void> {
@@ -238,11 +280,11 @@
 				source_type: model.source_type,
 				source_interval: model.requires_interval ? form.sourceInterval : '',
 				reference_value: '',
-				expiry_time: toUtcISOString(form.expiryTime)
+				...(usesAutomaticExpiry() ? {} : { expiry_time: toUtcISOString(form.expiryTime) })
 			});
 
 			createState.submitStatus = 'idle';
-			await goto(`/markets/${createdMarket.id}`);
+			await goto(resolve(`/markets/${createdMarket.id}`));
 		} catch (error) {
 			createState.submitStatus = 'error';
 			createState.submitError = toErrorMessage(error, 'Unable to create the market right now.');
@@ -255,10 +297,18 @@
 
 	function defaultExpiryTime(): string {
 		const future = new Date(Date.now() + 4 * 60 * 60 * 1000);
-		future.setSeconds(0, 0);
+		const roundedLocalTime = new Date(
+			future.getFullYear(),
+			future.getMonth(),
+			future.getDate(),
+			future.getHours(),
+			future.getMinutes(),
+			0,
+			0
+		);
 
-		const timezoneOffset = future.getTimezoneOffset();
-		const localTime = new Date(future.getTime() - timezoneOffset * 60 * 1000);
+		const timezoneOffset = roundedLocalTime.getTimezoneOffset();
+		const localTime = new Date(roundedLocalTime.getTime() - timezoneOffset * 60 * 1000);
 
 		return localTime.toISOString().slice(0, 16);
 	}
@@ -373,7 +423,7 @@
 									bind:value={form.symbol}
 									class="bg-surface-container-lowest border-outline-variant/20 text-on-surface focus:ring-primary-container/30 w-full rounded-sm border px-4 py-3 text-sm focus:ring-1"
 								>
-									{#each createState.symbols as symbol}
+									{#each createState.symbols as symbol (symbol.symbol)}
 										<option value={symbol.symbol}>{symbol.symbol}</option>
 									{/each}
 								</select>
@@ -388,7 +438,7 @@
 									class="bg-surface-container-lowest border-outline-variant/20 text-on-surface focus:ring-primary-container/30 w-full rounded-sm border px-4 py-3 text-sm focus:ring-1"
 									onchange={syncFormWithModel}
 								>
-									{#each createState.validationModels as model}
+									{#each createState.validationModels as model (model.market_type)}
 										<option value={model.market_type}>{marketTypeLabel(model.market_type)}</option>
 									{/each}
 								</select>
@@ -403,7 +453,7 @@
 									class="bg-surface-container-lowest border-outline-variant/20 text-on-surface focus:ring-primary-container/30 w-full rounded-sm border px-4 py-3 text-sm focus:ring-1"
 									onchange={syncFormWithModel}
 								>
-									{#each selectedModel()?.allowed_operators ?? [] as operator}
+									{#each selectedModel()?.allowed_operators ?? [] as operator (operator)}
 										<option value={operator}>{operatorLabel(operator)}</option>
 									{/each}
 								</select>
@@ -418,7 +468,7 @@
 										bind:value={form.sourceInterval}
 										class="bg-surface-container-lowest border-outline-variant/20 text-on-surface focus:ring-primary-container/30 w-full rounded-sm border px-4 py-3 text-sm focus:ring-1"
 									>
-										{#each selectedModel()?.allowed_intervals ?? [] as interval}
+										{#each selectedModel()?.allowed_intervals ?? [] as interval (interval)}
 											<option value={interval}>{interval}</option>
 										{/each}
 									</select>
@@ -440,17 +490,35 @@
 								</label>
 							{/if}
 
-							<label class="block">
-								<span class="text-outline mb-2 block text-[10px] tracking-widest uppercase"
-									>Expiry Time</span
+							{#if !usesAutomaticExpiry()}
+								<label class="block">
+									<span class="text-outline mb-2 block text-[10px] tracking-widest uppercase"
+										>Expiry Time</span
+									>
+									<div class="text-outline mb-2 text-xs leading-relaxed">
+										Use the picker or click into the field and use your arrow keys to adjust the
+										date and time.
+									</div>
+									<input
+										bind:value={form.expiryTime}
+										class="bg-surface-container-lowest border-outline-variant/20 text-on-surface focus:ring-primary-container/30 w-full rounded-sm border px-4 py-3 text-sm outline-none focus:ring-1"
+										required
+										step="60"
+										type="datetime-local"
+									/>
+								</label>
+							{:else}
+								<div
+									class="bg-surface-container-lowest border-outline-variant/10 rounded-sm border p-4"
 								>
-								<input
-									bind:value={form.expiryTime}
-									class="bg-surface-container-lowest border-outline-variant/20 text-on-surface focus:ring-primary-container/30 w-full rounded-sm border px-4 py-3 text-sm outline-none focus:ring-1"
-									required
-									type="datetime-local"
-								/>
-							</label>
+									<div class="text-outline mb-2 text-[10px] tracking-widest uppercase">Timing</div>
+									<div class="text-on-surface text-sm font-medium">{timingSummary()}</div>
+									<div class="text-outline mt-2 text-xs">
+										The backend sets the final expiry when you submit so interval markets stay
+										aligned with live settlement boundaries.
+									</div>
+								</div>
+							{/if}
 
 							<div
 								class="bg-surface-container-lowest border-outline-variant/10 rounded-sm border p-4 md:col-span-2"
@@ -485,7 +553,7 @@
 									Choose Side
 								</div>
 								<div class="flex gap-2">
-									{#each ['yes', 'no'] as side}
+									{#each ['yes', 'no'] as side (side)}
 										<button
 											class="flex-1 rounded-sm border py-3 text-xs font-bold uppercase transition-colors {form.creatorSide ===
 											side
@@ -609,10 +677,10 @@
 									>
 								</div>
 								<div class="flex justify-between gap-4">
-									<span class="text-outline uppercase">Expiry</span>
-									<span class="text-on-surface font-mono"
-										>{form.expiryTime || 'Pick an expiry'}</span
+									<span class="text-outline uppercase"
+										>{usesAutomaticExpiry() ? 'Timing' : 'Expiry'}</span
 									>
+									<span class="text-on-surface font-mono">{timingSummary()}</span>
 								</div>
 							</div>
 						</div>
