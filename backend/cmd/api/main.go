@@ -99,8 +99,8 @@ func main() {
 	authController := auth.NewController(authService)
 	playerController := player.NewController(playerService)
 	positionController := position.NewController(positionService)
-	realtimeService := realtime.NewService()
-	realtimeController := realtime.NewController(realtimeService)
+	realtimeHub := realtime.NewHub()
+	realtimeController := realtime.NewController(realtimeHub)
 	cookieManager := auth.NewCookieManager(cfg.Auth)
 	requireSession := httpapi.NewRequireSessionMiddleware(authController, cookieManager)
 

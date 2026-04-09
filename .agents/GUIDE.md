@@ -78,6 +78,7 @@
 - Market validation should use Pacifica `/api/v1/info` metadata through the pacifica module, with backend-owned caching instead of a hardcoded symbol list.
 - Realtime delivery should use backend-owned typed stream events with explicit `market.created`, `market.updated`, and `market.settled` event types instead of exposing raw Pacifica live payloads to the frontend.
 - The first realtime transport should be a public SSE endpoint with environment-backed heartbeat timing so the stream boundary is ready before the in-process hub is added.
+- Realtime fan-out should use one in-process bounded hub with a publisher contract, and slow subscribers should be dropped instead of blocking backend publishers.
 
 ## Settlement Contract Decisions
 
