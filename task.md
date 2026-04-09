@@ -1038,7 +1038,7 @@ Goal:
 
 Status:
 
-- `todo`
+- `done`
 
 Owner:
 

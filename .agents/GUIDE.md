@@ -76,6 +76,7 @@
 - The HTTP wiring pattern uses an `httpapi.Application` container for shared dependencies and controller references, plus an `httpapi.Router` helper that main.go uses to register method-aware routes explicitly.
 - Guest sessions use opaque random tokens stored only in secure cookies, while PostgreSQL stores the token hash and the initial virtual balance is provisioned during guest creation from environment-backed config.
 - Market validation should use Pacifica `/api/v1/info` metadata through the pacifica module, with backend-owned caching instead of a hardcoded symbol list.
+- Realtime delivery should use backend-owned typed stream events with explicit `market.created`, `market.updated`, and `market.settled` event types instead of exposing raw Pacifica live payloads to the frontend.
 
 ## Settlement Contract Decisions
 
