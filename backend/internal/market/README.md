@@ -11,6 +11,7 @@ I use this folder for market creation rules, market state transitions, and predi
 - Supported symbols should come from Pacifica market metadata instead of a hardcoded list, so symbol validation can track the actual tradable catalog without code churn.
 - Market creation should normalize and validate input before persistence so the write path stays deterministic and later HTTP handlers remain thin.
 - Market creation in v1 should create the market and the creator's first staked position in one transaction so the frontend does not need to coordinate two writes.
+- Successful market creation should publish a backend-owned `market.created` event only after the transaction commits so subscribers never see phantom markets.
 - Candle-direction markets should support the Pacifica mark-price candle intervals I expose in validation and still require expiry times that land exactly on the chosen candle close boundary so settlement resolves one unambiguous candle.
 - Market creation context should come from Pacifica-backed symbol and price inputs so the UI can guide valid source choices before the user submits a market.
 - Market listing should expose active and resolved catalogs without forcing the frontend to piece together multiple transport calls for the default dashboard view.
@@ -25,6 +26,7 @@ I use this folder for market creation rules, market state transitions, and predi
 - To find supported market validation models visit [validation_models.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/validation_models.go).
 - To find dynamic symbol and market-shape validation rules visit [validator.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/validator.go).
 - To find market service implementation visit [service_impl.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/service_impl.go).
+- To find market creation realtime publishing visit [service_impl.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/service_impl.go).
 - To find market controller implementation visit [controller_impl.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/controller_impl.go).
 - To find catalog response models visit [market.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/market.go).
 - To find market service contracts visit [service.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/service.go).
@@ -40,4 +42,5 @@ I use this folder for market creation rules, market state transitions, and predi
 - The Pacifica-backed market creation context can be found in [create_context.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/create_context.go) and [service_impl.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/service_impl.go).
 - The market creation orchestration can be found in [service_impl.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/service_impl.go).
 - The creator auto-stake market creation flow can be found in [create_input.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/create_input.go) and [service_impl.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/service_impl.go).
+- The market creation stream event handoff can be found in [../realtime/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/realtime/README.md).
 - The market persistence connection can be found in [../storage/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/storage/README.md).

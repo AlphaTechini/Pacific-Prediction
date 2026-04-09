@@ -7,6 +7,7 @@ import (
 
 	"prediction/internal/domain"
 	"prediction/internal/pacifica"
+	"prediction/internal/realtime"
 	"prediction/internal/storage"
 
 	"github.com/jackc/pgx/v5"
@@ -17,6 +18,7 @@ type service struct {
 	priceResolver               PriceResolver
 	candleResolver              CandleResolver
 	fundingResolver             FundingResolver
+	publisher                   realtime.Publisher
 	txManager                   settlementTxManager
 	marketRepositoryFactory     func(storage.Queryer) storage.MarketRepository
 	balanceRepositoryFactory    func(storage.Queryer) storage.BalanceRepository
@@ -32,6 +34,7 @@ type ServiceDeps struct {
 	PriceResolver               PriceResolver
 	CandleResolver              CandleResolver
 	FundingResolver             FundingResolver
+	Publisher                   realtime.Publisher
 	TxManager                   settlementTxManager
 	MarketRepositoryFactory     func(storage.Queryer) storage.MarketRepository
 	BalanceRepositoryFactory    func(storage.Queryer) storage.BalanceRepository
@@ -93,6 +96,7 @@ func NewService(deps ServiceDeps) Service {
 		priceResolver:               priceResolver,
 		candleResolver:              candleResolver,
 		fundingResolver:             fundingResolver,
+		publisher:                   deps.Publisher,
 		txManager:                   deps.TxManager,
 		marketRepositoryFactory:     marketRepositoryFactory,
 		balanceRepositoryFactory:    balanceRepositoryFactory,
@@ -441,6 +445,8 @@ func (s *service) applyResolvedMarket(ctx context.Context, item storage.Market, 
 	}
 
 	resolvedAt := application.SourceTimestamp
+	var createdSettlement storage.Settlement
+	var updatedMarket storage.Market
 	if err := s.txManager.WithinTransaction(ctx, func(tx pgx.Tx) error {
 		marketRepository := s.marketRepositoryFactory(tx)
 		balanceRepository := s.balanceRepositoryFactory(tx)
@@ -487,7 +493,7 @@ func (s *service) applyResolvedMarket(ctx context.Context, item storage.Market, 
 			}
 		}
 
-		if _, err := settlementRepository.Create(ctx, storage.CreateSettlementInput{
+		createdSettlement, err = settlementRepository.Create(ctx, storage.CreateSettlementInput{
 			ID:              settlementID,
 			MarketID:        item.ID,
 			PacificaSource:  application.PacificaSource,
@@ -495,18 +501,20 @@ func (s *service) applyResolvedMarket(ctx context.Context, item storage.Market, 
 			RawPayload:      application.RawPayload,
 			SettlementValue: application.SettlementValue,
 			Result:          application.Result,
-		}); err != nil {
+		})
+		if err != nil {
 			return fmt.Errorf("create settlement audit: %w", err)
 		}
 
-		if _, err := marketRepository.UpdateSettlement(ctx, storage.UpdateMarketSettlementInput{
+		updatedMarket, err = marketRepository.UpdateSettlement(ctx, storage.UpdateMarketSettlementInput{
 			MarketID:         item.ID,
 			Status:           domain.MarketStatusResolved,
 			Result:           application.Result,
 			SettlementValue:  application.SettlementValue,
 			ResolvedAt:       resolvedAt,
 			ResolutionReason: application.ResolutionReason,
-		}); err != nil {
+		})
+		if err != nil {
 			return fmt.Errorf("update market settlement state: %w", err)
 		}
 
@@ -514,6 +522,8 @@ func (s *service) applyResolvedMarket(ctx context.Context, item storage.Market, 
 	}); err != nil {
 		return Attempt{}, fmt.Errorf("apply resolved market settlement: %w", err)
 	}
+
+	s.publishSettlementEvents(ctx, updatedMarket, createdSettlement)
 
 	return Attempt{
 		MarketID:      item.ID,
@@ -556,4 +566,14 @@ func (s *service) persistPriceResolution(ctx context.Context, item storage.Marke
 		RawPayload:       resolution.RawPayload,
 		ResolutionReason: "price_threshold_mark_price",
 	})
+}
+
+func (s *service) publishSettlementEvents(ctx context.Context, marketItem storage.Market, settlementItem storage.Settlement) {
+	if s.publisher == nil {
+		return
+	}
+
+	publishCtx := context.WithoutCancel(ctx)
+	_ = s.publisher.Publish(publishCtx, realtime.NewMarketUpdatedEvent(marketItem, settlementItem.CreatedAt))
+	_ = s.publisher.Publish(publishCtx, realtime.NewMarketSettledEvent(marketItem, settlementItem))
 }

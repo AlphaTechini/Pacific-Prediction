@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"prediction/internal/balance"
 	"prediction/internal/domain"
 	"prediction/internal/market"
+	"prediction/internal/realtime"
 	"prediction/internal/storage"
 
 	"github.com/jackc/pgx/v5"
@@ -17,12 +19,14 @@ type service struct {
 	positionRepository storage.PositionRepository
 	txManager          *storage.TxManager
 	validator          Validator
+	publisher          realtime.Publisher
 }
 
 type ServiceDeps struct {
 	PositionRepository storage.PositionRepository
 	TxManager          *storage.TxManager
 	Validator          Validator
+	Publisher          realtime.Publisher
 }
 
 func NewService(deps ServiceDeps) Service {
@@ -30,6 +34,7 @@ func NewService(deps ServiceDeps) Service {
 		positionRepository: deps.PositionRepository,
 		txManager:          deps.TxManager,
 		validator:          deps.Validator,
+		publisher:          deps.Publisher,
 	}
 }
 
@@ -50,12 +55,13 @@ func (s *service) Create(ctx context.Context, playerID domain.PlayerID, input Cr
 	}
 
 	var created storage.Position
+	var selectedMarket storage.Market
 	if err := s.txManager.WithinTransaction(ctx, func(tx pgx.Tx) error {
 		marketRepository := storage.NewMarketPostgresRepository(tx)
 		balanceRepository := storage.NewBalancePostgresRepository(tx)
 		positionRepository := storage.NewPositionPostgresRepository(tx)
 
-		selectedMarket, err := marketRepository.GetByID(ctx, normalized.MarketID)
+		selectedMarket, err = marketRepository.GetByID(ctx, normalized.MarketID)
 		if err != nil {
 			return fmt.Errorf("get market for position placement: %w", err)
 		}
@@ -87,6 +93,8 @@ func (s *service) Create(ctx context.Context, playerID domain.PlayerID, input Cr
 	}); err != nil {
 		return Record{}, fmt.Errorf("place position: %w", err)
 	}
+
+	s.publishMarketUpdated(ctx, selectedMarket, created.CreatedAt)
 
 	return toRecord(created), nil
 }
@@ -164,4 +172,12 @@ func calculatePotentialPayout(stakeAmount string) (string, error) {
 	}
 
 	return payout, nil
+}
+
+func (s *service) publishMarketUpdated(ctx context.Context, item storage.Market, occurredAt time.Time) {
+	if s.publisher == nil {
+		return
+	}
+
+	_ = s.publisher.Publish(context.WithoutCancel(ctx), realtime.NewMarketUpdatedEvent(item, occurredAt))
 }

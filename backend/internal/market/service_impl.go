@@ -9,6 +9,7 @@ import (
 
 	"prediction/internal/domain"
 	"prediction/internal/pacifica"
+	"prediction/internal/realtime"
 	"prediction/internal/storage"
 
 	"github.com/jackc/pgx/v5"
@@ -18,6 +19,7 @@ type service struct {
 	marketRepository          storage.MarketRepository
 	createContextProvider     CreateContextProvider
 	validator                 Validator
+	publisher                 realtime.Publisher
 	txManager                 *storage.TxManager
 	marketRepositoryFactory   func(storage.Queryer) storage.MarketRepository
 	balanceRepositoryFactory  func(storage.Queryer) storage.BalanceRepository
@@ -28,6 +30,7 @@ type ServiceDeps struct {
 	MarketRepository          storage.MarketRepository
 	CreateContextProvider     CreateContextProvider
 	Validator                 Validator
+	Publisher                 realtime.Publisher
 	TxManager                 *storage.TxManager
 	MarketRepositoryFactory   func(storage.Queryer) storage.MarketRepository
 	BalanceRepositoryFactory  func(storage.Queryer) storage.BalanceRepository
@@ -73,6 +76,7 @@ func NewServiceWithDeps(deps ServiceDeps) Service {
 		marketRepository:          deps.MarketRepository,
 		createContextProvider:     deps.CreateContextProvider,
 		validator:                 deps.Validator,
+		publisher:                 deps.Publisher,
 		txManager:                 deps.TxManager,
 		marketRepositoryFactory:   marketRepositoryFactory,
 		balanceRepositoryFactory:  balanceRepositoryFactory,
@@ -158,6 +162,8 @@ func (s *service) Create(ctx context.Context, input CreateInput) (Record, error)
 	}); err != nil {
 		return Record{}, err
 	}
+
+	s.publishMarketCreated(ctx, created)
 
 	return toRecord(created), nil
 }
@@ -290,6 +296,14 @@ func newCreatorPositionID() (domain.PositionID, error) {
 	}
 
 	return domain.PositionID("position_" + hex.EncodeToString(buf)), nil
+}
+
+func (s *service) publishMarketCreated(ctx context.Context, item storage.Market) {
+	if s.publisher == nil {
+		return
+	}
+
+	_ = s.publisher.Publish(context.WithoutCancel(ctx), realtime.NewMarketCreatedEvent(item))
 }
 
 func toRecord(item storage.Market) Record {

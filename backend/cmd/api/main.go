@@ -47,6 +47,7 @@ func main() {
 	balanceRepository := storage.NewBalancePostgresRepository(db.Pool())
 	marketRepository := storage.NewMarketPostgresRepository(db.Pool())
 	positionRepository := storage.NewPositionPostgresRepository(db.Pool())
+	realtimeHub := realtime.NewHub()
 	pacificaHTTPClient := &http.Client{
 		Timeout: cfg.Pacifica.MarketInfoHTTPTimeout,
 	}
@@ -67,6 +68,7 @@ func main() {
 	marketService := market.NewServiceWithDeps(market.ServiceDeps{
 		MarketRepository:      marketRepository,
 		CreateContextProvider: pacificaRESTClient,
+		Publisher:             realtimeHub,
 		Validator:             marketValidator,
 		TxManager:             app.Dependencies.TxManager,
 	})
@@ -80,10 +82,12 @@ func main() {
 		PositionRepository: positionRepository,
 		TxManager:          app.Dependencies.TxManager,
 		Validator:          positionValidator,
+		Publisher:          realtimeHub,
 	})
 	settlementService := settlement.NewService(settlement.ServiceDeps{
 		MarketRepository:   marketRepository,
 		PacificaClient:     pacificaRESTClient,
+		Publisher:          realtimeHub,
 		TxManager:          app.Dependencies.TxManager,
 		PriceRetryInterval: cfg.Settlement.PriceRetryInterval,
 	})
@@ -99,7 +103,6 @@ func main() {
 	authController := auth.NewController(authService)
 	playerController := player.NewController(playerService)
 	positionController := position.NewController(positionService)
-	realtimeHub := realtime.NewHub()
 	realtimeController := realtime.NewController(realtimeHub)
 	cookieManager := auth.NewCookieManager(cfg.Auth)
 	requireSession := httpapi.NewRequireSessionMiddleware(authController, cookieManager)

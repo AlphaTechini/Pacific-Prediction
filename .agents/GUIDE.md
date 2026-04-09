@@ -79,6 +79,7 @@
 - Realtime delivery should use backend-owned typed stream events with explicit `market.created`, `market.updated`, and `market.settled` event types instead of exposing raw Pacifica live payloads to the frontend.
 - The first realtime transport should be a public SSE endpoint with environment-backed heartbeat timing so the stream boundary is ready before the in-process hub is added.
 - Realtime fan-out should use one in-process bounded hub with a publisher contract, and slow subscribers should be dropped instead of blocking backend publishers.
+- Market creation, position placement, and settlement completion should publish realtime events only after their durable writes succeed, using a post-commit context so client disconnects do not suppress committed events.
 
 ## Settlement Contract Decisions
 

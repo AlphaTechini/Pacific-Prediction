@@ -14,12 +14,15 @@ I use this folder for pushing live backend state to the client-facing stream.
 - The tradeoff is less long-term flexibility than a full app WebSocket layer, but it is the right level of complexity for v1.
 - The tradeoff of typed snapshots is a little extra mapping work, but it keeps Pacifica-specific churn out of the frontend stream contract.
 - The tradeoff of the in-process hub is that it stays single-process and drops slow subscribers once their bounded queue fills instead of letting one lagging client block publishers.
+- Market creation, position placement, and settlement completion should all publish backend-owned stream events only after their durable writes succeed.
 
 ## Logic Tracking
 
 - To find realtime event type definitions visit [event_type.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/realtime/event_type.go).
 - To find the shared realtime stream event envelope visit [event.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/realtime/event.go).
+- To find market event constructors and market snapshot mapping visit [market_event.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/realtime/market_event.go).
 - To find market stream snapshot contracts visit [market_snapshot.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/realtime/market_snapshot.go).
+- To find settlement event constructors visit [settlement_event.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/realtime/settlement_event.go).
 - To find settlement stream snapshot contracts visit [settlement_snapshot.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/realtime/settlement_snapshot.go).
 - To find realtime publisher contracts visit [publisher.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/realtime/publisher.go).
 - To find realtime subscription contracts visit [subscription.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/realtime/subscription.go).
@@ -35,6 +38,8 @@ I use this folder for pushing live backend state to the client-facing stream.
 - The client-facing event envelope can be found in [event.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/realtime/event.go).
 - The client subscription lifecycle can be found in [subscription.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/realtime/subscription.go), [service.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/realtime/service.go), and [service_impl.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/realtime/service_impl.go).
 - The backend publishing boundary can be found in [publisher.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/realtime/publisher.go) and [service_impl.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/realtime/service_impl.go).
+- The market event mapping can be found in [market_event.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/realtime/market_event.go).
 - The market lifecycle stream payload can be found in [market_snapshot.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/realtime/market_snapshot.go).
+- The settlement event mapping can be found in [settlement_event.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/realtime/settlement_event.go).
 - The settlement stream payload can be found in [settlement_snapshot.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/realtime/settlement_snapshot.go).
 - The upstream live data connection can be found in [../pacifica/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/pacifica/README.md).
