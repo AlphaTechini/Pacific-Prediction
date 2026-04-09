@@ -9,6 +9,7 @@ import (
 	"prediction/internal/market"
 	"prediction/internal/player"
 	"prediction/internal/position"
+	"prediction/internal/realtime"
 	"prediction/internal/storage"
 )
 
@@ -24,6 +25,7 @@ type Controllers struct {
 	Balance  balance.Controller
 	Market   market.Controller
 	Position position.Controller
+	Realtime realtime.Controller
 }
 
 type Application struct {

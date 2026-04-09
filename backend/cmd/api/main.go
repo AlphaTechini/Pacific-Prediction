@@ -16,6 +16,7 @@ import (
 	"prediction/internal/pacifica"
 	"prediction/internal/player"
 	"prediction/internal/position"
+	"prediction/internal/realtime"
 	"prediction/internal/settlement"
 	"prediction/internal/storage"
 )
@@ -98,6 +99,8 @@ func main() {
 	authController := auth.NewController(authService)
 	playerController := player.NewController(playerService)
 	positionController := position.NewController(positionService)
+	realtimeService := realtime.NewService()
+	realtimeController := realtime.NewController(realtimeService)
 	cookieManager := auth.NewCookieManager(cfg.Auth)
 	requireSession := httpapi.NewRequireSessionMiddleware(authController, cookieManager)
 
@@ -107,12 +110,14 @@ func main() {
 		Balance:  balanceController,
 		Market:   marketController,
 		Position: positionController,
+		Realtime: realtimeController,
 	})
 
 	app.RegisterRoute(http.MethodPost, "/api/v1/players/guest", httpapi.NewCreateGuestSessionHandler(authController, playerController, cookieManager))
 	app.RegisterRoute(http.MethodGet, "/api/v1/players/me", requireSession(httpapi.NewGetMeHandler(playerController)))
 	app.RegisterRoute(http.MethodGet, "/api/v1/players/me/balance", requireSession(httpapi.NewGetBalanceHandler(balanceController)))
 	app.RegisterRoute(http.MethodGet, "/api/v1/players/me/positions", requireSession(httpapi.NewListPlayerPositionsHandler(positionController)))
+	app.RegisterRoute(http.MethodGet, "/api/v1/stream", httpapi.NewStreamHandler(realtimeController, cfg.Realtime.HeartbeatInterval))
 	app.RegisterRoute(http.MethodPost, "/api/v1/markets", requireSession(httpapi.NewCreateMarketHandler(marketController)))
 	app.RegisterRoute(http.MethodGet, "/api/v1/markets", httpapi.NewListMarketsHandler(marketController))
 	app.RegisterRoute(http.MethodGet, "/api/v1/markets/context", httpapi.NewGetMarketCreateContextHandler(marketController))

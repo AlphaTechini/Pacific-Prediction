@@ -17,6 +17,7 @@ type Config struct {
 	Auth          AuthConfig
 	Balance       BalanceConfig
 	Pacifica      PacificaConfig
+	Realtime      RealtimeConfig
 	Settlement    SettlementConfig
 }
 
@@ -46,6 +47,10 @@ type SettlementConfig struct {
 	PriceRetryInterval time.Duration
 }
 
+type RealtimeConfig struct {
+	HeartbeatInterval time.Duration
+}
+
 func Load() (Config, error) {
 	authConfig, err := loadAuthConfig()
 	if err != nil {
@@ -67,6 +72,11 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	realtimeConfig, err := loadRealtimeConfig()
+	if err != nil {
+		return Config{}, err
+	}
+
 	cfg := Config{
 		AppEnv:        getEnv("APP_ENV", "development"),
 		AppAddr:       getEnv("APP_ADDR", ":8080"),
@@ -75,6 +85,7 @@ func Load() (Config, error) {
 		Auth:          authConfig,
 		Balance:       balanceConfig,
 		Pacifica:      pacificaConfig,
+		Realtime:      realtimeConfig,
 		Settlement:    settlementConfig,
 	}
 
@@ -250,6 +261,25 @@ func loadSettlementConfig() (SettlementConfig, error) {
 		ScanBatchSize:      scanBatchSize,
 		PriceLookahead:     priceLookahead,
 		PriceRetryInterval: priceRetryInterval,
+	}, nil
+}
+
+func loadRealtimeConfig() (RealtimeConfig, error) {
+	heartbeatIntervalRaw := os.Getenv("REALTIME_HEARTBEAT_INTERVAL")
+	if heartbeatIntervalRaw == "" {
+		return RealtimeConfig{}, fmt.Errorf("REALTIME_HEARTBEAT_INTERVAL is required")
+	}
+
+	heartbeatInterval, err := time.ParseDuration(heartbeatIntervalRaw)
+	if err != nil {
+		return RealtimeConfig{}, fmt.Errorf("parse REALTIME_HEARTBEAT_INTERVAL: %w", err)
+	}
+	if heartbeatInterval <= 0 {
+		return RealtimeConfig{}, fmt.Errorf("REALTIME_HEARTBEAT_INTERVAL must be greater than zero")
+	}
+
+	return RealtimeConfig{
+		HeartbeatInterval: heartbeatInterval,
 	}, nil
 }
 

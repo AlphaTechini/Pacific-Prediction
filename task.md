@@ -1007,7 +1007,7 @@ Acceptance criteria:
 
 Status:
 
-- `todo`
+- `done`
 
 Owner:
 
@@ -1061,7 +1061,7 @@ Acceptance criteria:
 
 Status:
 
-- `todo`
+- `done`
 
 Owner:
 

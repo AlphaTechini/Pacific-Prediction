@@ -14,11 +14,13 @@ I use this folder for HTTP routing, request validation, response shaping, and tr
 - Market creation should stay product-shaped in HTTP, which now means the route accepts creator side and stake so the frontend can submit one request instead of coordinating a second opening-position call.
 - Market listing returns grouped active and resolved catalogs for the default dashboard read path.
 - Market detail and position placement use Go's method-aware and path-aware `http.ServeMux` patterns so nested market routes stay explicit without adding a third-party router.
+- Realtime stream exposure should stay transport-only here, with SSE headers, heartbeat writes, and stream serialization while the realtime package owns subscription contracts.
 - The tradeoff is an extra translation layer, but it gives me a cleaner contract and safer future changes.
 
 ## Logic Tracking
 
 - To find HTTP transport logic visit [README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/httpapi/README.md).
+- To find SSE stream handler logic visit [realtime_handlers.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/httpapi/realtime_handlers.go).
 - To find market domain logic visit [../market/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/README.md).
 - To find position domain logic visit [../position/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/position/README.md).
 - To find player and balance logic visit [../player/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/player/README.md).
@@ -28,4 +30,5 @@ I use this folder for HTTP routing, request validation, response shaping, and tr
 
 - The client-facing API transport can be found in [README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/httpapi/README.md).
 - The realtime client stream connection can be found in [../realtime/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/realtime/README.md).
+- The SSE transport handler can be found in [realtime_handlers.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/httpapi/realtime_handlers.go).
 - The composition root that wires controllers into this transport can be found in [../../cmd/api/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/cmd/api/README.md).
