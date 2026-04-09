@@ -215,7 +215,7 @@ I want the backend in the middle because it gives me:
 The SvelteKit frontend will contain:
 
 - dashboard page for active and resolved markets
-- market creation flow
+- market creation flow with creator-side and creator-stake inputs
 - market detail page
 - portfolio page for virtual positions and balance
 - live countdown and result UI
@@ -224,6 +224,7 @@ Frontend responsibilities:
 
 - rendering live market state
 - collecting market creation inputs
+- collecting the creator's initial side and stake as part of market creation
 - placing virtual positions
 - showing virtual PnL and resolved outcomes
 
@@ -240,7 +241,7 @@ The Go backend will expose:
 - guest session endpoints
 - player profile endpoints
 - balance endpoints
-- market creation endpoints
+- market creation endpoints that can also auto-place the creator's first stake
 - market listing and detail endpoints
 - virtual position endpoints
 - internal settlement workers
@@ -320,6 +321,12 @@ Required fields:
 - `settlement_value`
 - `resolved_at`
 - `resolution_reason`
+
+Every created market in v1 also carries one creator-commitment rule at the API level:
+
+- the creator must choose `YES` or `NO`
+- the creator must commit an initial stake amount
+- the backend should create the market and the creator's first position in one transaction
 
 ### Market type mapping
 
@@ -440,6 +447,8 @@ I will use a backend worker that:
 - updates balances and positions in one database transaction
 - records the raw settlement value and source used
 
+Payout application is part of the settlement transaction itself, not a second asynchronous follow-up step.
+
 ### Market-data fetch cadence by market type
 
 - price threshold markets are the only v1 market type that may need short near-expiry retries
@@ -476,6 +485,7 @@ Each player has:
 - a starting virtual balance
 - stakeable amounts per market
 - winnings or losses applied after settlement
+- creator participation in any market they open
 
 ### Payout approach
 
@@ -487,6 +497,17 @@ Recommended v1 rule:
 - if the prediction is correct, payout = stake + profit
 - if the prediction is wrong, loss = full stake
 
+Entry-time balance rule:
+
+- placing a position removes the stake from spendable balance immediately
+- the stake remains tracked as locked balance until settlement completes
+
+Settlement-time balance rule:
+
+- losers receive no additional balance credit
+- winners receive their fixed `potential_payout`
+- settlement clears the locked stake accounting for both winners and losers
+
 ### Simpler profit option
 
 The cleanest first version is fixed-odds by side at entry time or an even simpler house rule.
@@ -495,6 +516,12 @@ Recommended default:
 
 - YES and NO both start at even odds
 - payout is `2x stake` on win and `0` on loss, minus no platform fee in v1
+
+Creator rule:
+
+- market creation requires the creator to choose a side
+- market creation requires the creator to commit an initial stake
+- the backend should handle market creation and creator auto-stake in one transactional flow
 
 Why I prefer this first:
 
@@ -588,7 +615,7 @@ Boundary rule:
 
 Owns:
 
-- market creation
+- market creation, including creator auto-stake orchestration
 - market validation
 - market listing and market detail
 - supported market-type rules
@@ -635,7 +662,7 @@ Possesses:
 
 Boundary rule:
 
-- `settlement` coordinates resolution, but `balance` performs balance mutations and `pacifica` provides source data
+- `settlement` coordinates resolution and payout completion in one transaction, while `pacifica` provides source data and balance state changes remain explicit persistence-backed mutations
 
 ### `pacifica`
 
@@ -743,6 +770,8 @@ That keeps the frontend focused on:
 - outcomes
 
 instead of making the UI understand Pacifica transport details.
+
+For creation specifically, I prefer one product-shaped market-create route over a frontend-managed two-step sequence that first creates the market and then separately places the creator's opening stake.
 
 ---
 

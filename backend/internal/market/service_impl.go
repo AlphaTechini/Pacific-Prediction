@@ -2,18 +2,36 @@ package market
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"strings"
 
 	"prediction/internal/domain"
 	"prediction/internal/pacifica"
 	"prediction/internal/storage"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type service struct {
-	marketRepository      storage.MarketRepository
-	createContextProvider CreateContextProvider
-	validator             Validator
+	marketRepository          storage.MarketRepository
+	createContextProvider     CreateContextProvider
+	validator                 Validator
+	txManager                 *storage.TxManager
+	marketRepositoryFactory   func(storage.Queryer) storage.MarketRepository
+	balanceRepositoryFactory  func(storage.Queryer) storage.BalanceRepository
+	positionRepositoryFactory func(storage.Queryer) storage.PositionRepository
+}
+
+type ServiceDeps struct {
+	MarketRepository          storage.MarketRepository
+	CreateContextProvider     CreateContextProvider
+	Validator                 Validator
+	TxManager                 *storage.TxManager
+	MarketRepositoryFactory   func(storage.Queryer) storage.MarketRepository
+	BalanceRepositoryFactory  func(storage.Queryer) storage.BalanceRepository
+	PositionRepositoryFactory func(storage.Queryer) storage.PositionRepository
 }
 
 type CreateContextProvider interface {
@@ -22,10 +40,43 @@ type CreateContextProvider interface {
 }
 
 func NewService(marketRepository storage.MarketRepository, createContextProvider CreateContextProvider, validator Validator) Service {
+	return NewServiceWithDeps(ServiceDeps{
+		MarketRepository:      marketRepository,
+		CreateContextProvider: createContextProvider,
+		Validator:             validator,
+	})
+}
+
+func NewServiceWithDeps(deps ServiceDeps) Service {
+	marketRepositoryFactory := deps.MarketRepositoryFactory
+	if marketRepositoryFactory == nil {
+		marketRepositoryFactory = func(queryer storage.Queryer) storage.MarketRepository {
+			return storage.NewMarketPostgresRepository(queryer)
+		}
+	}
+
+	balanceRepositoryFactory := deps.BalanceRepositoryFactory
+	if balanceRepositoryFactory == nil {
+		balanceRepositoryFactory = func(queryer storage.Queryer) storage.BalanceRepository {
+			return storage.NewBalancePostgresRepository(queryer)
+		}
+	}
+
+	positionRepositoryFactory := deps.PositionRepositoryFactory
+	if positionRepositoryFactory == nil {
+		positionRepositoryFactory = func(queryer storage.Queryer) storage.PositionRepository {
+			return storage.NewPositionPostgresRepository(queryer)
+		}
+	}
+
 	return &service{
-		marketRepository:      marketRepository,
-		createContextProvider: createContextProvider,
-		validator:             validator,
+		marketRepository:          deps.MarketRepository,
+		createContextProvider:     deps.CreateContextProvider,
+		validator:                 deps.Validator,
+		txManager:                 deps.TxManager,
+		marketRepositoryFactory:   marketRepositoryFactory,
+		balanceRepositoryFactory:  balanceRepositoryFactory,
+		positionRepositoryFactory: positionRepositoryFactory,
 	}
 }
 
@@ -40,7 +91,17 @@ func (s *service) Create(ctx context.Context, input CreateInput) (Record, error)
 		return Record{}, err
 	}
 
-	created, err := s.marketRepository.Create(ctx, storage.CreateMarketInput{
+	creatorPositionID, err := newCreatorPositionID()
+	if err != nil {
+		return Record{}, err
+	}
+
+	potentialPayout, err := domain.CalculateEvenOddsPayout(normalized.CreatorStakeAmount)
+	if err != nil {
+		return Record{}, domain.NewValidationError("creator_stake_amount", "creator stake amount must be a valid decimal value", normalized.CreatorStakeAmount)
+	}
+
+	createMarketInput := storage.CreateMarketInput{
 		ID:                marketID,
 		Title:             normalized.Title,
 		Symbol:            normalized.Symbol,
@@ -52,9 +113,50 @@ func (s *service) Create(ctx context.Context, input CreateInput) (Record, error)
 		ReferenceValue:    normalized.ReferenceValue,
 		ExpiryTime:        normalized.ExpiryTime,
 		CreatedByPlayerID: normalized.CreatedByPlayerID,
-	})
-	if err != nil {
-		return Record{}, fmt.Errorf("create market: %w", err)
+	}
+
+	var created storage.Market
+	if s.txManager == nil {
+		created, err = s.marketRepository.Create(ctx, createMarketInput)
+		if err != nil {
+			return Record{}, fmt.Errorf("create market: %w", err)
+		}
+
+		return toRecord(created), nil
+	}
+
+	if err := s.txManager.WithinTransaction(ctx, func(tx pgx.Tx) error {
+		marketRepository := s.marketRepositoryFactory(tx)
+		balanceRepository := s.balanceRepositoryFactory(tx)
+		positionRepository := s.positionRepositoryFactory(tx)
+
+		var createErr error
+		created, createErr = marketRepository.Create(ctx, createMarketInput)
+		if createErr != nil {
+			return fmt.Errorf("create market: %w", createErr)
+		}
+
+		if _, createErr = balanceRepository.LockStake(ctx, storage.LockStakeInput{
+			PlayerID: normalized.CreatedByPlayerID,
+			Amount:   normalized.CreatorStakeAmount,
+		}); createErr != nil {
+			return fmt.Errorf("lock creator stake: %w", createErr)
+		}
+
+		if _, createErr = positionRepository.Create(ctx, storage.CreatePositionInput{
+			ID:              creatorPositionID,
+			PlayerID:        normalized.CreatedByPlayerID,
+			MarketID:        marketID,
+			Side:            normalized.CreatorSide,
+			StakeAmount:     normalized.CreatorStakeAmount,
+			PotentialPayout: potentialPayout,
+		}); createErr != nil {
+			return fmt.Errorf("create creator opening position: %w", createErr)
+		}
+
+		return nil
+	}); err != nil {
+		return Record{}, err
 	}
 
 	return toRecord(created), nil
@@ -173,11 +275,21 @@ func (s *service) SupportedValidationModels() []ValidationModel {
 func normalizeCreateInput(input CreateInput) CreateInput {
 	input.Title = strings.TrimSpace(input.Title)
 	input.Symbol = strings.ToUpper(strings.TrimSpace(input.Symbol))
+	input.CreatorStakeAmount = strings.TrimSpace(input.CreatorStakeAmount)
 	input.ThresholdValue = strings.TrimSpace(input.ThresholdValue)
 	input.SourceInterval = strings.TrimSpace(input.SourceInterval)
 	input.ReferenceValue = strings.TrimSpace(input.ReferenceValue)
 	input.ExpiryTime = domain.NormalizeTime(input.ExpiryTime)
 	return input
+}
+
+func newCreatorPositionID() (domain.PositionID, error) {
+	buf := make([]byte, 12)
+	if _, err := rand.Read(buf); err != nil {
+		return "", fmt.Errorf("generate creator position id: %w", err)
+	}
+
+	return domain.PositionID("position_" + hex.EncodeToString(buf)), nil
 }
 
 func toRecord(item storage.Market) Record {

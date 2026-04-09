@@ -63,7 +63,12 @@ func main() {
 	playerService := player.NewService(playerRepository)
 	balanceService := balance.NewService(balanceRepository)
 	marketValidator := market.NewValidationService(pacificaRESTClient)
-	marketService := market.NewService(marketRepository, pacificaRESTClient, marketValidator)
+	marketService := market.NewServiceWithDeps(market.ServiceDeps{
+		MarketRepository:      marketRepository,
+		CreateContextProvider: pacificaRESTClient,
+		Validator:             marketValidator,
+		TxManager:             app.Dependencies.TxManager,
+	})
 	marketController := market.NewController(marketService)
 	balanceController := balance.NewController(balanceService)
 	positionValidator := position.NewValidationService(position.ValidationDeps{

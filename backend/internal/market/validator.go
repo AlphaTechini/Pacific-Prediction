@@ -41,6 +41,21 @@ func (s *validationService) ValidateCreateInput(ctx context.Context, input Creat
 		return domain.NewValidationError("created_by_player_id", "creator is required", input.CreatedByPlayerID)
 	}
 
+	if input.CreatorSide != domain.PositionSideYes && input.CreatorSide != domain.PositionSideNo {
+		return domain.NewValidationError("creator_side", "creator side must be yes or no", input.CreatorSide)
+	}
+
+	creatorStake, err := domain.ParseDecimal(input.CreatorStakeAmount)
+	if err != nil {
+		return domain.NewValidationError("creator_stake_amount", "creator stake amount must be a valid decimal value", input.CreatorStakeAmount)
+	}
+	if creatorStake.Sign() <= 0 {
+		return domain.NewValidationError("creator_stake_amount", "creator stake amount must be greater than zero", input.CreatorStakeAmount)
+	}
+	if !domain.FitsNumericScale(input.CreatorStakeAmount, 8) {
+		return domain.NewValidationError("creator_stake_amount", "creator stake amount must use no more than 8 decimal places", input.CreatorStakeAmount)
+	}
+
 	model, ok := findValidationModel(input.MarketType)
 	if !ok {
 		return domain.NewValidationError("market_type", "unsupported market type", input.MarketType)

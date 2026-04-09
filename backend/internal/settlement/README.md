@@ -11,6 +11,7 @@ I use this folder for expiry scanning, settlement execution, payout calculation,
 - In v1, price-threshold settlement should prefer batched Pacifica REST reads at expiry time, while candle and funding settlement should resolve from historical endpoints on demand.
 - A price market should settle only when the Pacifica response timestamp is at or after expiry, and the worker should retry briefly instead of guessing if the first fetch is too early.
 - The worker should plan price fetches in shared near-expiry batches instead of scheduling one timer or cron job per market.
+- Settlement completion should update positions, clear locked stake accounting, and credit winners inside the same transaction as the market-resolution audit write.
 - The tradeoff is that it depends on several other packages, but I prefer one explicit coordination point over scattered settlement code.
 
 ## Logic Tracking

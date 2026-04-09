@@ -1,87 +1,89 @@
-﻿# Structure
+# Structure
 
 ## Purpose
 
-I am scoping the repository around the backend first and intentionally leaving the frontend out for now.
+I use this file to map the current repository layout, show where the implemented backend logic lives, and link to the README for every backend folder that already has ownership notes.
 
-This file maps the current project layout, shows where each backend concern belongs, and links to the README for every folder currently present in the repo.
+The frontend folder exists, but the backend is still the most complete part of the repo right now, so this map is intentionally backend-heavy.
 
 ## Current Folder Structure
 
 ```text
 Pacific Prediction/
 +-- .agents/
-¦   +-- GUIDE.md
-¦   +-- README.md
+|   +-- GUIDE.md
+|   +-- README.md
 +-- backend/
-¦   +-- cmd/
-¦   ¦   +-- README.md
-¦   ¦   +-- api/
-¦   ¦       +-- README.md
-¦   +-- internal/
-¦   ¦   +-- README.md
-¦   ¦   +-- auth/
-¦   ¦   ¦   +-- README.md
-¦   ¦   +-- balance/
-¦   ¦   ¦   +-- README.md
-¦   ¦   +-- config/
-¦   ¦   ¦   +-- README.md
-¦   ¦   +-- domain/
-¦   ¦   ¦   +-- README.md
-¦   ¦   +-- httpapi/
-¦   ¦   ¦   +-- README.md
-¦   ¦   +-- market/
-¦   ¦   ¦   +-- README.md
-¦   ¦   +-- pacifica/
-¦   ¦   ¦   +-- README.md
-¦   ¦   +-- position/
-¦   ¦   ¦   +-- README.md
-¦   ¦   +-- player/
-¦   ¦   ¦   +-- README.md
-¦   ¦   +-- realtime/
-¦   ¦   ¦   +-- README.md
-¦   ¦   +-- settlement/
-¦   ¦   ¦   +-- README.md
-¦   ¦   +-- storage/
-¦   ¦       +-- README.md
-¦   +-- migrations/
-¦   ¦   +-- README.md
-¦   +-- README.md
+|   +-- cmd/
+|   |   +-- README.md
+|   |   +-- api/
+|   |       +-- README.md
+|   +-- internal/
+|   |   +-- README.md
+|   |   +-- auth/
+|   |   |   +-- README.md
+|   |   +-- balance/
+|   |   |   +-- README.md
+|   |   +-- config/
+|   |   |   +-- README.md
+|   |   +-- domain/
+|   |   |   +-- README.md
+|   |   +-- httpapi/
+|   |   |   +-- README.md
+|   |   +-- market/
+|   |   |   +-- README.md
+|   |   +-- pacifica/
+|   |   |   +-- README.md
+|   |   +-- player/
+|   |   |   +-- README.md
+|   |   +-- position/
+|   |   |   +-- README.md
+|   |   +-- realtime/
+|   |   |   +-- README.md
+|   |   +-- settlement/
+|   |   |   +-- README.md
+|   |   +-- storage/
+|   |       +-- README.md
+|   +-- migrations/
+|   |   +-- README.md
+|   +-- README.md
++-- Frontend/
 +-- Readme.md
 +-- Resources.md
 +-- Research.md
 +-- architecture.md
++-- frontend-notes.md
 +-- schema.md
-+-- task.md
 +-- structure.md
++-- task.md
 ```
 
 ## High-Level Mapping
 
-- Product and sponsor context live in [Readme.md](file:///C:/Hackathons/Pacific%20Prediction/Readme.md) and [Resources.md](file:///C:/Hackathons/Pacific%20Prediction/Resources.md).
-- Research findings and API-driven constraints live in [Research.md](file:///C:/Hackathons/Pacific%20Prediction/Research.md).
-- Confirmed architecture decisions live in [architecture.md](file:///C:/Hackathons/Pacific%20Prediction/architecture.md).
-- Schema decisions and extension rules live in [schema.md](file:///C:/Hackathons/Pacific%20Prediction/schema.md).
-- Execution-ready implementation sequencing lives in [task.md](file:///C:/Hackathons/Pacific%20Prediction/task.md).
-- Persistent project constraints live in [.agents/README.md](file:///C:/Hackathons/Pacific%20Prediction/.agents/README.md) and [.agents/GUIDE.md](file:///C:/Hackathons/Pacific%20Prediction/.agents/GUIDE.md).
-- Backend planning and module ownership begin in [backend/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/README.md).
+- Product-level overview and current repo entrypoint live in [Readme.md](file:///C:/Hackathons/Pacific%20Prediction/Readme.md).
+- Architecture decisions and tradeoffs live in [architecture.md](file:///C:/Hackathons/Pacific%20Prediction/architecture.md).
+- Schema reasoning and extension boundaries live in [schema.md](file:///C:/Hackathons/Pacific%20Prediction/schema.md).
+- Execution sequencing and task state live in [task.md](file:///C:/Hackathons/Pacific%20Prediction/task.md).
+- Frontend flow notes for creator auto-stake live in [frontend-notes.md](file:///C:/Hackathons/Pacific%20Prediction/frontend-notes.md).
+- Pacifica research notes live in [Research.md](file:///C:/Hackathons/Pacific%20Prediction/Research.md).
+- Backend package ownership begins in [backend/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/README.md).
 
 ## Backend Logic Map
 
-- To find backend entrypoint planning visit [backend/cmd/api/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/cmd/api/README.md).
+- To find backend entrypoint wiring visit [backend/cmd/api/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/cmd/api/README.md).
 - To find auth and session logic visit [backend/internal/auth/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/auth/README.md).
-- To find balance logic visit [backend/internal/balance/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/balance/README.md).
-- To find configuration logic visit [backend/internal/config/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/config/README.md).
-- To find shared domain vocabulary visit [backend/internal/domain/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/domain/README.md).
-- To find HTTP transport logic visit [backend/internal/httpapi/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/httpapi/README.md).
-- To find market lifecycle logic visit [backend/internal/market/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/README.md).
-- To find Pacifica integration logic visit [backend/internal/pacifica/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/pacifica/README.md).
-- To find position lifecycle logic visit [backend/internal/position/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/position/README.md).
-- To find player identity logic visit [backend/internal/player/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/player/README.md).
-- To find realtime delivery logic visit [backend/internal/realtime/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/realtime/README.md).
-- To find settlement logic visit [backend/internal/settlement/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/README.md).
-- To find persistence and repository logic visit [backend/internal/storage/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/storage/README.md).
-- To find database schema and migration planning visit [backend/migrations/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/migrations/README.md).
+- To find balance rules and settlement-time balance accounting visit [backend/internal/balance/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/balance/README.md).
+- To find configuration loading visit [backend/internal/config/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/config/README.md).
+- To find shared domain vocabulary and decimal helpers visit [backend/internal/domain/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/domain/README.md).
+- To find HTTP request and response shaping visit [backend/internal/httpapi/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/httpapi/README.md).
+- To find market creation and creator auto-stake orchestration visit [backend/internal/market/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/README.md).
+- To find Pacifica REST and WebSocket integration visit [backend/internal/pacifica/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/pacifica/README.md).
+- To find direct participant position placement visit [backend/internal/position/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/position/README.md).
+- To find player profile logic visit [backend/internal/player/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/player/README.md).
+- To find realtime placeholder ownership visit [backend/internal/realtime/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/realtime/README.md).
+- To find deterministic settlement and payout application visit [backend/internal/settlement/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/README.md).
+- To find PostgreSQL repositories and transaction boundaries visit [backend/internal/storage/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/storage/README.md).
+- To find migration files visit [backend/migrations/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/migrations/README.md).
 
 ## Folder README Index
 
@@ -97,8 +99,8 @@ Pacific Prediction/
 - [backend/internal/httpapi/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/httpapi/README.md)
 - [backend/internal/market/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/README.md)
 - [backend/internal/pacifica/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/pacifica/README.md)
-- [backend/internal/position/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/position/README.md)
 - [backend/internal/player/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/player/README.md)
+- [backend/internal/position/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/position/README.md)
 - [backend/internal/realtime/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/realtime/README.md)
 - [backend/internal/settlement/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/README.md)
 - [backend/internal/storage/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/storage/README.md)
@@ -106,27 +108,18 @@ Pacific Prediction/
 
 ## Backend Boundary Summary
 
-I am keeping the backend split simple:
+I am keeping the backend split simple and practical:
 
-- `cmd` will hold executable entrypoints only.
-- `internal/auth` will own guest sessions and future auth upgrades.
-- `internal/balance` will own authoritative virtual balance rules.
-- `internal/config` will own environment and runtime configuration.
-- `internal/domain` will own shared enum-like values, ID aliases, UTC timestamp rules, and common validation errors.
-- `internal/httpapi` will own HTTP handlers, request validation, and response shaping.
-- `internal/market` will own market creation, listing, and resolution rules at the domain level.
-- `internal/pacifica` will isolate all Pacifica REST and WebSocket integration.
-- `internal/position` will own YES or NO placement contracts and player position history rules.
-- `internal/player` will own player identity and profile rules.
-- `internal/realtime` will push live updates from backend state to the client-facing stream.
-- `internal/settlement` will own expiry scanning and deterministic resolution.
-- `internal/storage` will isolate PostgreSQL persistence and transaction boundaries.
-- `migrations` will hold schema evolution files once implementation starts.
-
-## Tradeoffs
-
-- I am documenting a deeper backend structure now because it will prevent a monolithic Go service later.
-- I am not creating frontend folders yet because the current planning focus is backend-first.
-- I am keeping the first split coarse enough to stay practical, but separated enough that Pacifica integration, settlement, auth, and balance logic do not collapse into one package.
-
-
+- `cmd` owns executable startup only.
+- `auth` owns guest session lifecycle.
+- `balance` owns authoritative balance concepts and mutation intent.
+- `config` owns environment-backed runtime config.
+- `domain` owns shared enums, IDs, time helpers, candle interval helpers, and decimal helpers.
+- `httpapi` owns transport shaping only.
+- `market` owns market creation and creator auto-stake orchestration.
+- `pacifica` isolates upstream market data access.
+- `position` owns participant position placement and history reads.
+- `player` owns player identity reads.
+- `settlement` owns resolver orchestration and transactional payout completion.
+- `storage` owns PostgreSQL repositories and transaction boundaries.
+- `migrations` owns schema history.

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-I use this folder for database schema migrations and seed strategy once backend implementation starts.
+I use this folder for database schema migrations that back the live backend implementation.
 
 ## Architectural Decisions And Tradeoffs
 

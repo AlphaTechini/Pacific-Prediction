@@ -8,6 +8,7 @@ I use this folder for PostgreSQL repositories, transaction boundaries, and persi
 
 - I want SQL and transaction control isolated from HTTP handlers and domain coordination code.
 - This package should own persistence for players, markets, positions, balances, and settlement records.
+- Balance persistence should support stake locking at entry time and settlement-time clearing or payout application without leaking SQL into orchestration code.
 - I split repository contracts by module concern and expose them through a transaction-scoped repository provider so domain services can coordinate writes safely without sharing raw SQL handles.
 - The tradeoff is explicit mapping code and a little more wiring, but that keeps the database layer predictable and replaceable.
 

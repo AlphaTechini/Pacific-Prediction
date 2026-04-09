@@ -30,6 +30,8 @@
 - The frontend should talk only to our backend, not directly to Pacifica.
 - Player identity in v1 uses guest accounts with backend-issued sessions.
 - Balances must be server-authoritative.
+- Market creators must choose a side and stake when creating a market, and that initial creator participation should be handled by the backend as part of one flow.
+- The frontend should prefer one backend route for "create market with creator auto-stake" instead of coordinating separate market-create and position-create requests.
 
 ## Settlement Decisions
 
@@ -45,6 +47,9 @@
 - Funding markets should fetch historical funding records on demand at resolution time rather than polling continuously.
 - Funding markets should resolve from the first Pacifica funding record whose settlement timestamp is at or after the market expiry.
 - Always-on Pacifica WebSocket subscriptions are not the default settlement path in v1.
+- Stake placement removes spendable balance up front.
+- On settlement, losers receive no further balance change and winners receive their fixed `potential_payout`.
+- `POST /api/v1/markets` should own the transactional creator flow instead of splitting creator market creation and creator opening position into separate frontend steps.
 
 ## Deferred Roadmap
 

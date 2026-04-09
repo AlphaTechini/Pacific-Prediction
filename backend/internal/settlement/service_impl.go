@@ -20,6 +20,8 @@ type service struct {
 	fundingResolver             FundingResolver
 	txManager                   settlementTxManager
 	marketRepositoryFactory     func(storage.Queryer) storage.MarketRepository
+	balanceRepositoryFactory    func(storage.Queryer) storage.BalanceRepository
+	positionRepositoryFactory   func(storage.Queryer) storage.PositionRepository
 	settlementRepositoryFactory func(storage.Queryer) storage.SettlementRepository
 	priceRetryInterval          time.Duration
 	sleep                       func(context.Context, time.Duration) error
@@ -33,6 +35,8 @@ type ServiceDeps struct {
 	FundingResolver             FundingResolver
 	TxManager                   settlementTxManager
 	MarketRepositoryFactory     func(storage.Queryer) storage.MarketRepository
+	BalanceRepositoryFactory    func(storage.Queryer) storage.BalanceRepository
+	PositionRepositoryFactory   func(storage.Queryer) storage.PositionRepository
 	SettlementRepositoryFactory func(storage.Queryer) storage.SettlementRepository
 	PriceRetryInterval          time.Duration
 }
@@ -53,6 +57,20 @@ func NewService(deps ServiceDeps) Service {
 	if settlementRepositoryFactory == nil {
 		settlementRepositoryFactory = func(queryer storage.Queryer) storage.SettlementRepository {
 			return storage.NewSettlementPostgresRepository(queryer)
+		}
+	}
+
+	balanceRepositoryFactory := deps.BalanceRepositoryFactory
+	if balanceRepositoryFactory == nil {
+		balanceRepositoryFactory = func(queryer storage.Queryer) storage.BalanceRepository {
+			return storage.NewBalancePostgresRepository(queryer)
+		}
+	}
+
+	positionRepositoryFactory := deps.PositionRepositoryFactory
+	if positionRepositoryFactory == nil {
+		positionRepositoryFactory = func(queryer storage.Queryer) storage.PositionRepository {
+			return storage.NewPositionPostgresRepository(queryer)
 		}
 	}
 
@@ -78,6 +96,8 @@ func NewService(deps ServiceDeps) Service {
 		fundingResolver:             fundingResolver,
 		txManager:                   deps.TxManager,
 		marketRepositoryFactory:     marketRepositoryFactory,
+		balanceRepositoryFactory:    balanceRepositoryFactory,
+		positionRepositoryFactory:   positionRepositoryFactory,
 		settlementRepositoryFactory: settlementRepositoryFactory,
 		priceRetryInterval:          deps.PriceRetryInterval,
 		sleep: func(ctx context.Context, duration time.Duration) error {
@@ -162,6 +182,15 @@ func attemptFromMarket(item storage.Market) Attempt {
 		MarketType: item.MarketType,
 		Settled:    false,
 	}
+}
+
+type resolvedMarketApplication struct {
+	PacificaSource   string
+	SourceTimestamp  time.Time
+	SettlementValue  string
+	Result           domain.MarketResult
+	RawPayload       []byte
+	ResolutionReason string
 }
 
 func (s *service) settleDueMarketItems(ctx context.Context, items []storage.Market) ([]Attempt, error) {
@@ -403,7 +432,24 @@ func (s *service) resolveDuePriceBatch(ctx context.Context, markets []PriceMarke
 	return s.priceResolver.ResolveBatch(ctx, markets)
 }
 
-func (s *service) persistCandleResolution(ctx context.Context, item storage.Market, resolution CandleResolution) (Attempt, error) {
+func determinePositionSettlement(side domain.PositionSide, marketResult domain.MarketResult) (domain.PositionStatus, error) {
+	switch side {
+	case domain.PositionSideYes:
+		if marketResult == domain.MarketResultYes {
+			return domain.PositionStatusWon, nil
+		}
+		return domain.PositionStatusLost, nil
+	case domain.PositionSideNo:
+		if marketResult == domain.MarketResultNo {
+			return domain.PositionStatusWon, nil
+		}
+		return domain.PositionStatusLost, nil
+	default:
+		return "", domain.NewValidationError("side", "position side is not supported for settlement", side)
+	}
+}
+
+func (s *service) applyResolvedMarket(ctx context.Context, item storage.Market, application resolvedMarketApplication) (Attempt, error) {
 	if s.txManager == nil {
 		return Attempt{}, fmt.Errorf("settlement transaction manager is not configured")
 	}
@@ -413,37 +459,79 @@ func (s *service) persistCandleResolution(ctx context.Context, item storage.Mark
 		return Attempt{}, err
 	}
 
-	resolvedAt := resolution.CloseTime
+	resolvedAt := application.SourceTimestamp
 	if err := s.txManager.WithinTransaction(ctx, func(tx pgx.Tx) error {
 		marketRepository := s.marketRepositoryFactory(tx)
+		balanceRepository := s.balanceRepositoryFactory(tx)
+		positionRepository := s.positionRepositoryFactory(tx)
 		settlementRepository := s.settlementRepositoryFactory(tx)
+
+		positions, err := positionRepository.ListByMarketID(ctx, item.ID)
+		if err != nil {
+			return fmt.Errorf("list positions for settlement application: %w", err)
+		}
+
+		for _, position := range positions {
+			positionStatus, statusErr := determinePositionSettlement(position.Side, application.Result)
+			if statusErr != nil {
+				return statusErr
+			}
+
+			if _, err := positionRepository.UpdateSettlement(ctx, storage.UpdatePositionSettlementInput{
+				PositionID: position.ID,
+				Status:     positionStatus,
+				SettledAt:  resolvedAt,
+			}); err != nil {
+				return fmt.Errorf("update position settlement: %w", err)
+			}
+
+			switch positionStatus {
+			case domain.PositionStatusWon:
+				if _, err := balanceRepository.SettleWonPosition(ctx, storage.SettleWonPositionInput{
+					PlayerID:     position.PlayerID,
+					StakeAmount:  position.StakeAmount,
+					PayoutAmount: position.PotentialPayout,
+				}); err != nil {
+					return fmt.Errorf("settle winner balance: %w", err)
+				}
+			case domain.PositionStatusLost:
+				if _, err := balanceRepository.SettleLostPosition(ctx, storage.SettleLostPositionInput{
+					PlayerID:    position.PlayerID,
+					StakeAmount: position.StakeAmount,
+				}); err != nil {
+					return fmt.Errorf("settle loser balance: %w", err)
+				}
+			default:
+				return domain.NewValidationError("status", "position settlement status is not supported", positionStatus)
+			}
+		}
 
 		if _, err := settlementRepository.Create(ctx, storage.CreateSettlementInput{
 			ID:              settlementID,
 			MarketID:        item.ID,
-			PacificaSource:  resolution.PacificaSource,
-			SourceTimestamp: resolution.CloseTime,
-			RawPayload:      resolution.RawPayload,
-			SettlementValue: resolution.ClosePrice,
-			Result:          resolution.Result,
+			PacificaSource:  application.PacificaSource,
+			SourceTimestamp: application.SourceTimestamp,
+			RawPayload:      application.RawPayload,
+			SettlementValue: application.SettlementValue,
+			Result:          application.Result,
 		}); err != nil {
-			return fmt.Errorf("create candle settlement audit: %w", err)
+			return fmt.Errorf("create settlement audit: %w", err)
 		}
 
 		if _, err := marketRepository.UpdateSettlement(ctx, storage.UpdateMarketSettlementInput{
 			MarketID:         item.ID,
 			Status:           domain.MarketStatusResolved,
-			Result:           resolution.Result,
-			SettlementValue:  resolution.ClosePrice,
+			Result:           application.Result,
+			SettlementValue:  application.SettlementValue,
 			ResolvedAt:       resolvedAt,
-			ResolutionReason: "candle_direction_mark_price_close",
+			ResolutionReason: application.ResolutionReason,
 		}); err != nil {
 			return fmt.Errorf("update market settlement state: %w", err)
 		}
 
 		return nil
 	}); err != nil {
-		return Attempt{}, fmt.Errorf("persist candle settlement: %w", err)
+		return Attempt{}, fmt.Errorf("apply resolved market settlement: %w", err)
 	}
 
 	return Attempt{
@@ -452,112 +540,39 @@ func (s *service) persistCandleResolution(ctx context.Context, item storage.Mark
 		Settled:       true,
 		SettlementID:  &settlementID,
 		SettledAt:     &resolvedAt,
-		SettlementRef: resolution.PacificaSource,
+		SettlementRef: application.PacificaSource,
 	}, nil
+}
+
+func (s *service) persistCandleResolution(ctx context.Context, item storage.Market, resolution CandleResolution) (Attempt, error) {
+	return s.applyResolvedMarket(ctx, item, resolvedMarketApplication{
+		PacificaSource:   resolution.PacificaSource,
+		SourceTimestamp:  resolution.CloseTime,
+		SettlementValue:  resolution.ClosePrice,
+		Result:           resolution.Result,
+		RawPayload:       resolution.RawPayload,
+		ResolutionReason: "candle_direction_mark_price_close",
+	})
 }
 
 func (s *service) persistFundingResolution(ctx context.Context, item storage.Market, resolution FundingResolution) (Attempt, error) {
-	if s.txManager == nil {
-		return Attempt{}, fmt.Errorf("settlement transaction manager is not configured")
-	}
-
-	settlementID, err := NewSettlementID()
-	if err != nil {
-		return Attempt{}, err
-	}
-
-	resolvedAt := resolution.SettlementTime
-	if err := s.txManager.WithinTransaction(ctx, func(tx pgx.Tx) error {
-		marketRepository := s.marketRepositoryFactory(tx)
-		settlementRepository := s.settlementRepositoryFactory(tx)
-
-		if _, err := settlementRepository.Create(ctx, storage.CreateSettlementInput{
-			ID:              settlementID,
-			MarketID:        item.ID,
-			PacificaSource:  resolution.PacificaSource,
-			SourceTimestamp: resolution.SettlementTime,
-			RawPayload:      resolution.RawPayload,
-			SettlementValue: resolution.FundingRate,
-			Result:          resolution.Result,
-		}); err != nil {
-			return fmt.Errorf("create funding settlement audit: %w", err)
-		}
-
-		if _, err := marketRepository.UpdateSettlement(ctx, storage.UpdateMarketSettlementInput{
-			MarketID:         item.ID,
-			Status:           domain.MarketStatusResolved,
-			Result:           resolution.Result,
-			SettlementValue:  resolution.FundingRate,
-			ResolvedAt:       resolvedAt,
-			ResolutionReason: "funding_threshold_history",
-		}); err != nil {
-			return fmt.Errorf("update market settlement state: %w", err)
-		}
-
-		return nil
-	}); err != nil {
-		return Attempt{}, fmt.Errorf("persist funding settlement: %w", err)
-	}
-
-	return Attempt{
-		MarketID:      item.ID,
-		MarketType:    item.MarketType,
-		Settled:       true,
-		SettlementID:  &settlementID,
-		SettledAt:     &resolvedAt,
-		SettlementRef: resolution.PacificaSource,
-	}, nil
+	return s.applyResolvedMarket(ctx, item, resolvedMarketApplication{
+		PacificaSource:   resolution.PacificaSource,
+		SourceTimestamp:  resolution.SettlementTime,
+		SettlementValue:  resolution.FundingRate,
+		Result:           resolution.Result,
+		RawPayload:       resolution.RawPayload,
+		ResolutionReason: "funding_threshold_history",
+	})
 }
 
 func (s *service) persistPriceResolution(ctx context.Context, item storage.Market, resolution PriceResolution) (Attempt, error) {
-	if s.txManager == nil {
-		return Attempt{}, fmt.Errorf("settlement transaction manager is not configured")
-	}
-
-	settlementID, err := NewSettlementID()
-	if err != nil {
-		return Attempt{}, err
-	}
-
-	resolvedAt := resolution.SourceTimestamp
-	if err := s.txManager.WithinTransaction(ctx, func(tx pgx.Tx) error {
-		marketRepository := s.marketRepositoryFactory(tx)
-		settlementRepository := s.settlementRepositoryFactory(tx)
-
-		if _, err := settlementRepository.Create(ctx, storage.CreateSettlementInput{
-			ID:              settlementID,
-			MarketID:        item.ID,
-			PacificaSource:  resolution.PacificaSource,
-			SourceTimestamp: resolution.SourceTimestamp,
-			RawPayload:      resolution.RawPayload,
-			SettlementValue: resolution.SettlementMarkPrice,
-			Result:          resolution.Result,
-		}); err != nil {
-			return fmt.Errorf("create price settlement audit: %w", err)
-		}
-
-		if _, err := marketRepository.UpdateSettlement(ctx, storage.UpdateMarketSettlementInput{
-			MarketID:         item.ID,
-			Status:           domain.MarketStatusResolved,
-			Result:           resolution.Result,
-			SettlementValue:  resolution.SettlementMarkPrice,
-			ResolvedAt:       resolvedAt,
-			ResolutionReason: "price_threshold_mark_price",
-		}); err != nil {
-			return fmt.Errorf("update market settlement state: %w", err)
-		}
-
-		return nil
-	}); err != nil {
-		return Attempt{}, fmt.Errorf("persist price settlement: %w", err)
-	}
-
-	return Attempt{
-		MarketID:      item.ID,
-		MarketType:    item.MarketType,
-		Settled:       true,
-		SettlementID:  &settlementID,
-		SettledAt:     &resolvedAt,
-		SettlementRef: resolution.PacificaSource,
-	}, nil
+	return s.applyResolvedMarket(ctx, item, resolvedMarketApplication{
+		PacificaSource:   resolution.PacificaSource,
+		SourceTimestamp:  resolution.SourceTimestamp,
+		SettlementValue:  resolution.SettlementMarkPrice,
+		Result:           resolution.Result,
+		RawPayload:       resolution.RawPayload,
+		ResolutionReason: "price_threshold_mark_price",
+	})
 }

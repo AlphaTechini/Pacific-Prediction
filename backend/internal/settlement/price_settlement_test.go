@@ -114,6 +114,8 @@ func TestSettleDueMarketsSettlesPriceMarketWhenPacificaTimestampQualifies(t *tes
 	}
 	writeRepo := &fakeMarketWriteRepository{}
 	settlementRepo := &fakeSettlementRepository{}
+	positionRepo := &fakePositionRepository{}
+	balanceRepo := &fakeBalanceRepository{}
 	service := NewService(ServiceDeps{
 		MarketRepository: repo,
 		PriceResolver: &fakePriceResolver{
@@ -131,6 +133,12 @@ func TestSettleDueMarketsSettlesPriceMarketWhenPacificaTimestampQualifies(t *tes
 		TxManager: &fakeSettlementTxManager{},
 		MarketRepositoryFactory: func(storage.Queryer) storage.MarketRepository {
 			return writeRepo
+		},
+		PositionRepositoryFactory: func(storage.Queryer) storage.PositionRepository {
+			return positionRepo
+		},
+		BalanceRepositoryFactory: func(storage.Queryer) storage.BalanceRepository {
+			return balanceRepo
 		},
 		SettlementRepositoryFactory: func(storage.Queryer) storage.SettlementRepository {
 			return settlementRepo
@@ -180,6 +188,8 @@ func TestSettleDueMarketsLeavesPriceMarketUnsettledWhenSourceIsStillEarly(t *tes
 	}
 	writeRepo := &fakeMarketWriteRepository{}
 	settlementRepo := &fakeSettlementRepository{}
+	positionRepo := &fakePositionRepository{}
+	balanceRepo := &fakeBalanceRepository{}
 	service := NewService(ServiceDeps{
 		MarketRepository: repo,
 		PriceResolver: &fakePriceResolver{
@@ -188,6 +198,12 @@ func TestSettleDueMarketsLeavesPriceMarketUnsettledWhenSourceIsStillEarly(t *tes
 		TxManager: &fakeSettlementTxManager{},
 		MarketRepositoryFactory: func(storage.Queryer) storage.MarketRepository {
 			return writeRepo
+		},
+		PositionRepositoryFactory: func(storage.Queryer) storage.PositionRepository {
+			return positionRepo
+		},
+		BalanceRepositoryFactory: func(storage.Queryer) storage.BalanceRepository {
+			return balanceRepo
 		},
 		SettlementRepositoryFactory: func(storage.Queryer) storage.SettlementRepository {
 			return settlementRepo
@@ -319,4 +335,57 @@ func (r *fakeSettlementRepository) Create(_ context.Context, input storage.Creat
 
 func (r *fakeSettlementRepository) GetByMarketID(context.Context, domain.MarketID) (storage.Settlement, error) {
 	panic("unexpected GetByMarketID call")
+}
+
+type fakePositionRepository struct {
+	items   []storage.Position
+	updates []storage.UpdatePositionSettlementInput
+}
+
+func (r *fakePositionRepository) Create(context.Context, storage.CreatePositionInput) (storage.Position, error) {
+	panic("unexpected Create call")
+}
+
+func (r *fakePositionRepository) ListByPlayerID(context.Context, domain.PlayerID, int) ([]storage.Position, error) {
+	panic("unexpected ListByPlayerID call")
+}
+
+func (r *fakePositionRepository) ListByMarketID(context.Context, domain.MarketID) ([]storage.Position, error) {
+	return append([]storage.Position(nil), r.items...), nil
+}
+
+func (r *fakePositionRepository) UpdateSettlement(_ context.Context, input storage.UpdatePositionSettlementInput) (storage.Position, error) {
+	r.updates = append(r.updates, input)
+	return storage.Position{
+		ID:        input.PositionID,
+		Status:    input.Status,
+		SettledAt: &input.SettledAt,
+	}, nil
+}
+
+type fakeBalanceRepository struct {
+	wins   []storage.SettleWonPositionInput
+	losses []storage.SettleLostPositionInput
+}
+
+func (r *fakeBalanceRepository) Create(context.Context, storage.CreateBalanceInput) (storage.Balance, error) {
+	panic("unexpected Create call")
+}
+
+func (r *fakeBalanceRepository) GetByPlayerID(context.Context, domain.PlayerID) (storage.Balance, error) {
+	panic("unexpected GetByPlayerID call")
+}
+
+func (r *fakeBalanceRepository) LockStake(context.Context, storage.LockStakeInput) (storage.Balance, error) {
+	panic("unexpected LockStake call")
+}
+
+func (r *fakeBalanceRepository) SettleWonPosition(_ context.Context, input storage.SettleWonPositionInput) (storage.Balance, error) {
+	r.wins = append(r.wins, input)
+	return storage.Balance{PlayerID: input.PlayerID}, nil
+}
+
+func (r *fakeBalanceRepository) SettleLostPosition(_ context.Context, input storage.SettleLostPositionInput) (storage.Balance, error) {
+	r.losses = append(r.losses, input)
+	return storage.Balance{PlayerID: input.PlayerID}, nil
 }

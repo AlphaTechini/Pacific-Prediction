@@ -3,7 +3,6 @@ package position
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"strings"
 
 	"prediction/internal/balance"
@@ -29,14 +28,14 @@ func (s *validationService) ValidateCreateInput(ctx context.Context, playerID do
 		return domain.NewValidationError("side", "side must be yes or no", input.Side)
 	}
 
-	stake, err := parseDecimal(input.StakeAmount)
+	stake, err := domain.ParseDecimal(input.StakeAmount)
 	if err != nil {
 		return domain.NewValidationError("stake_amount", "stake amount must be a valid decimal value", input.StakeAmount)
 	}
 	if stake.Sign() <= 0 {
 		return domain.NewValidationError("stake_amount", "stake amount must be greater than zero", input.StakeAmount)
 	}
-	if !fitsNumericScale(strings.TrimSpace(input.StakeAmount), 8) {
+	if !domain.FitsNumericScale(strings.TrimSpace(input.StakeAmount), 8) {
 		return domain.NewValidationError("stake_amount", "stake amount must use no more than 8 decimal places", input.StakeAmount)
 	}
 
@@ -58,7 +57,7 @@ func (s *validationService) ValidateCreateInput(ctx context.Context, playerID do
 		return fmt.Errorf("get balance for position validation: %w", err)
 	}
 
-	availableBalance, err := parseDecimal(balanceSnapshot.AvailableBalance)
+	availableBalance, err := domain.ParseDecimal(balanceSnapshot.AvailableBalance)
 	if err != nil {
 		return fmt.Errorf("parse available balance: %w", err)
 	}
@@ -68,30 +67,4 @@ func (s *validationService) ValidateCreateInput(ctx context.Context, playerID do
 	}
 
 	return nil
-}
-
-func parseDecimal(value string) (*big.Rat, error) {
-	parsed, ok := new(big.Rat).SetString(value)
-	if !ok {
-		return nil, fmt.Errorf("parse decimal %q", value)
-	}
-
-	return parsed, nil
-}
-
-func fitsNumericScale(value string, maxScale int) bool {
-	parts := strings.SplitN(value, ".", 2)
-	if len(parts) < 2 {
-		return true
-	}
-
-	return len(parts[1]) <= maxScale
-}
-
-func formatFixedScaleDecimal(value *big.Rat, scale int) string {
-	if value == nil {
-		return ""
-	}
-
-	return value.FloatString(scale)
 }

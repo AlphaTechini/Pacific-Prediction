@@ -3,7 +3,6 @@ package position
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"strings"
 
 	"prediction/internal/balance"
@@ -159,11 +158,10 @@ func validateMarketPlacementState(selectedMarket storage.Market) error {
 }
 
 func calculatePotentialPayout(stakeAmount string) (string, error) {
-	stake, err := parseDecimal(stakeAmount)
+	payout, err := domain.CalculateEvenOddsPayout(stakeAmount)
 	if err != nil {
 		return "", domain.NewValidationError("stake_amount", "stake amount must be a valid decimal value", stakeAmount)
 	}
 
-	payout := new(big.Rat).Mul(stake, big.NewRat(2, 1))
-	return formatFixedScaleDecimal(payout, 8), nil
+	return payout, nil
 }

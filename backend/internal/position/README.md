@@ -2,12 +2,12 @@
 
 ## Purpose
 
-I use this folder for position-facing contracts and, in later tasks, the rules that place YES and NO predictions against a market.
+I use this folder for direct participant position placement and player-facing position history reads.
 
 ## Architectural Decisions And Tradeoffs
 
 - I keep position contracts in their own package because position placement depends on market eligibility and balance locking, but it should not collapse those concerns into one module.
-- I expose player-scoped create and list contracts first because Phase 4 starts with the public position workflow, while settlement and persistence details are owned elsewhere.
+- I keep direct participant placement here even though the market module now handles the creator's opening position during market creation.
 - I keep `potential_payout` on the position record because the architecture locks fixed-odds economics at entry time instead of recomputing old positions from newer payout rules.
 - The tradeoff is another package boundary, but it keeps position lifecycle rules easier to change without destabilizing auth, market, or balance code.
 
@@ -23,6 +23,7 @@ I use this folder for position-facing contracts and, in later tasks, the rules t
 - To find shared position enums and ID aliases visit [../domain/position.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/domain/position.go) and [../domain/ids.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/domain/ids.go).
 - To find market eligibility rules that this package will depend on visit [../market/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/README.md).
 - To find balance locking rules that this package will depend on visit [../balance/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/balance/README.md).
+- To find creator auto-stake market creation flow visit [../market/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/README.md).
 
 ## Component And Connection Map
 
@@ -33,4 +34,5 @@ I use this folder for position-facing contracts and, in later tasks, the rules t
 - The shared position vocabulary can be found in [../domain/position.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/domain/position.go).
 - The market connection can be found in [../market/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/README.md).
 - The balance connection can be found in [../balance/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/balance/README.md).
+- The settlement status updates that later consume these records can be found in [../settlement/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/README.md).
 - The persistence connection can be found in [../storage/position_repository.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/storage/position_repository.go).

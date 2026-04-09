@@ -10,15 +10,17 @@ import (
 )
 
 type createMarketRequest struct {
-	Title             string `json:"title"`
-	Symbol            string `json:"symbol"`
-	MarketType        string `json:"market_type"`
-	ConditionOperator string `json:"condition_operator"`
-	ThresholdValue    string `json:"threshold_value"`
-	SourceType        string `json:"source_type"`
-	SourceInterval    string `json:"source_interval"`
-	ReferenceValue    string `json:"reference_value"`
-	ExpiryTime        string `json:"expiry_time"`
+	Title              string `json:"title"`
+	Symbol             string `json:"symbol"`
+	MarketType         string `json:"market_type"`
+	ConditionOperator  string `json:"condition_operator"`
+	CreatorSide        string `json:"creator_side"`
+	CreatorStakeAmount string `json:"creator_stake_amount"`
+	ThresholdValue     string `json:"threshold_value"`
+	SourceType         string `json:"source_type"`
+	SourceInterval     string `json:"source_interval"`
+	ReferenceValue     string `json:"reference_value"`
+	ExpiryTime         string `json:"expiry_time"`
 }
 
 type createMarketResponse struct {
@@ -120,16 +122,18 @@ func NewCreateMarketHandler(controller market.Controller) http.Handler {
 		}
 
 		record, err := controller.Create(r.Context(), market.CreateInput{
-			Title:             request.Title,
-			Symbol:            request.Symbol,
-			MarketType:        domain.MarketType(request.MarketType),
-			ConditionOperator: domain.ConditionOperator(request.ConditionOperator),
-			ThresholdValue:    request.ThresholdValue,
-			SourceType:        domain.SourceType(request.SourceType),
-			SourceInterval:    request.SourceInterval,
-			ReferenceValue:    request.ReferenceValue,
-			ExpiryTime:        expiryTime,
-			CreatedByPlayerID: playerID,
+			Title:              request.Title,
+			Symbol:             request.Symbol,
+			MarketType:         domain.MarketType(request.MarketType),
+			ConditionOperator:  domain.ConditionOperator(request.ConditionOperator),
+			CreatorSide:        domain.PositionSide(request.CreatorSide),
+			CreatorStakeAmount: request.CreatorStakeAmount,
+			ThresholdValue:     request.ThresholdValue,
+			SourceType:         domain.SourceType(request.SourceType),
+			SourceInterval:     request.SourceInterval,
+			ReferenceValue:     request.ReferenceValue,
+			ExpiryTime:         expiryTime,
+			CreatedByPlayerID:  playerID,
 		})
 		if err != nil {
 			writeError(w, err)
