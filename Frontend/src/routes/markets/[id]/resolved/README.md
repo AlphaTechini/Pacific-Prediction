@@ -1,0 +1,19 @@
+# Frontend/src/routes/markets/[id]/resolved
+
+## Purpose
+
+I use this folder for the resolved market view.
+
+## Architectural Decisions And Tradeoffs
+
+- I keep the resolved screen read-only and tied to the market id route hierarchy.
+- This keeps the result surface simple and avoids mixing settlement display concerns into the main trading state.
+
+## Logic Tracking
+
+- To find the resolved market page visit [+page.svelte](file:///C:/Hackathons/Pacific%20Prediction/Frontend/src/routes/markets/[id]/resolved/+page.svelte).
+- To find market-detail and result data helpers visit [../../../../lib/market-detail-data.ts](file:///C:/Hackathons/Pacific%20Prediction/Frontend/src/lib/market-detail-data.ts).
+
+## Component And Connection Map
+
+- The resolved-market route-to-backend connection can be found in [../../../../lib/market-detail-data.ts](file:///C:/Hackathons/Pacific%20Prediction/Frontend/src/lib/market-detail-data.ts).

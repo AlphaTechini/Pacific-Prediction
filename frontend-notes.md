@@ -1,45 +1,42 @@
 # Frontend Notes
 
-## Main Product Reminders
+## Current Product Reminders
 
 - I should keep the frontend honest.
-- If a feature is not supported in v1, I should not make it feel half-live.
-- The frontend should talk only to our backend, not directly to Pacifica.
-- Guest session is the current player flow. Wallet login is not the main flow for this version.
+- If a feature is not supported in the current backend, I should not make it feel half-live.
+- The frontend should talk to our backend only, not directly to Pacifica.
+- Guest session is still the main player flow for this version.
 
-## Creator Stake Flow
+## What Is Real Today
 
-- Market creation is no longer metadata-only.
-- The market creator must choose a side (`yes` or `no`) and a stake amount as part of creating a prediction.
-- The frontend should treat creator market creation as one guided action that also places the creator's first position automatically.
-- I should keep this flow simple on the page: define market, choose side, choose stake, submit once.
+- The dashboard is backed by real market, balance, and position reads.
+- The create-market page uses one backend flow that includes creator side and creator stake.
+- Market detail and resolved pages are backed by real market reads.
+- The portfolio uses real player balance and positions.
+- The leaderboard is now a real backend-backed page, not a placeholder.
 
-## What I Should Avoid Right Now
+## What Is Still Drift, Not Product Truth
 
-- AI insight panels.
-- Wallet-claim language.
-- Open-interest market options.
-- Private-market choices.
-- Leaderboard-heavy product focus.
-- Decorative controls that look clickable but do not do anything.
+- The landing page still speaks in a more aspirational tone than the actual v1 feature set.
+- Some old marketing copy still references unsupported concepts like AI or extra signal types.
+- The frontend config still uses `adapter-auto`, but the project standard says `@sveltejs/adapter-vercel`.
 
 ## UX Direction
 
-- I should keep the current visual quality, but strip out fake power-user noise.
+- I should keep the current visual quality, but make the copy and controls more truthful over time.
 - If a section is not backed by real data, I should either remove it or clearly simplify it.
 - I should avoid stuffing the UI with technical wording just because the backend is ready.
 - I should prefer plain labels and simple user messages over frontend jargon.
 
 ## Integration Reminder
 
-- The create-market page should use one backend create route for the full creator action.
-- The trade page should let a player choose side, enter stake, and submit once.
-- The dashboard should become the main live view for real markets instead of sample cards.
-- The portfolio should show real balance and real positions before anything more advanced is added.
+- The app already has a backend proxy route, so browser requests should keep using it.
+- The create-market page should keep using one backend create route for the full creator action.
+- The dashboard should stay focused on real markets and real player state.
+- The leaderboard should stay a read-only performance surface until deeper profile features exist.
 
 ## Practical Notes
 
-- The frontend builds today, but it still has a few accessibility warnings that should be cleaned during the integration pass.
-- The frontend config still uses `adapter-auto`, but the project standard says `@sveltejs/adapter-vercel`.
-- Some copied text has encoding issues and should be cleaned during the same pass.
-- Browser-style interaction from this environment may be limited, so I may be better at code-side frontend work than live browser clicking in this setup.
+- The frontend now builds and type-checks with the live data pages in place.
+- The leaderboard uses a route-level load because one snapshot response is cheaper than multiple client requests.
+- Other app pages still use lightweight post-mount fetches, which is acceptable for the current scale but not the only possible future direction.

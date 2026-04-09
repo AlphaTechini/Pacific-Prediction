@@ -1,34 +1,40 @@
-# Pacific Prediction | Pulse Terminal
+# Frontend
 
-A high-fidelity prediction environment for technical signals. This platform transforms real-time on-chain and perpetual trading metrics into tradable prediction markets.
+## Purpose
 
-## Project Structure & Logic
-For a detailed map of the codebase and where specific logic resides, please visit the [structure.md](file:///c:/Hackathons/Pacific%20Prediction/Frontend/structure.md) file.
+I use this frontend to present the real Pacifica Pulse product flow: guest entry, live market browsing, market creation, market detail, portfolio, and leaderboard.
 
-## Tech Stack
-- **Framework**: SvelteKit (Svelte 5 Runes)
-- **Styling**: Tailwind CSS v4 (Obsidian Pulse Design System)
-- **Icons**: Material Symbols Outlined
-- **Logic**: TypeScript
+## Architectural Decisions And Tradeoffs
 
-## Getting Started
+- I keep the frontend talking to our backend only, never directly to Pacifica.
+- I use a SvelteKit proxy route under `/api/*` so cookies and backend URL management stay centralized.
+- I keep most business logic in the backend and let the frontend focus on rendering and user input.
+- I use a mix of route-level and client-side loading today because it keeps the current app simple without blocking progress.
+- I accept that the landing page still contains older concept copy while the product pages are already much closer to backend truth.
 
-1.  **Install dependencies**:
-    ```bash
-    pnpm install
-    ```
+## Current Frontend Capabilities
 
-2.  **Start development server**:
-    ```bash
-    pnpm dev
-    ```
+- Landing page shell at `/`
+- Guest-session-aware dashboard at `/dashboard`
+- Real create-market flow at `/markets/create`
+- Real market detail view at `/markets/[id]`
+- Resolved market view at `/markets/[id]/resolved`
+- Portfolio view at `/portfolio`
+- Server-loaded leaderboard at `/leaderboard`
+- Backend proxy transport at `/api/[...path]`
 
-3.  **Build for production**:
-    ```bash
-    pnpm build
-    ```
+## Logic Tracking
 
-## Documentation Standards
-Every directory in this project contains its own `README.md` with:
-- Architectural decisions and tradeoffs.
-- Explicit links to key logic files using the format: "To find {logic} visit [filename]".
+- To find the repo-level structure map visit [../structure.md](file:///C:/Hackathons/Pacific%20Prediction/structure.md).
+- To find platform architecture decisions visit [../architecture.md](file:///C:/Hackathons/Pacific%20Prediction/architecture.md).
+- To find frontend notes and remaining alignment work visit [../frontend-notes.md](file:///C:/Hackathons/Pacific%20Prediction/frontend-notes.md) and [../frontend-integration.md](file:///C:/Hackathons/Pacific%20Prediction/frontend-integration.md).
+- To find frontend source ownership visit [src/README.md](file:///C:/Hackathons/Pacific%20Prediction/Frontend/src/README.md).
+- To find mockup and stitch references visit [stitch_screens/README.md](file:///C:/Hackathons/Pacific%20Prediction/Frontend/stitch_screens/README.md).
+
+## Component And Connection Map
+
+- The frontend application boundary can be found in [README.md](file:///C:/Hackathons/Pacific%20Prediction/Frontend/README.md).
+- The frontend source tree can be found in [src/README.md](file:///C:/Hackathons/Pacific%20Prediction/Frontend/src/README.md).
+- The route ownership map can be found in [src/routes/README.md](file:///C:/Hackathons/Pacific%20Prediction/Frontend/src/routes/README.md).
+- The shared frontend data and UI layer can be found in [src/lib/README.md](file:///C:/Hackathons/Pacific%20Prediction/Frontend/src/lib/README.md).
+- The backend proxy connection can be found in [src/lib/server/README.md](file:///C:/Hackathons/Pacific%20Prediction/Frontend/src/lib/server/README.md).

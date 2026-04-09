@@ -2,555 +2,168 @@
 
 ## Purpose
 
-I am defining the v1 architecture for Pacifica Pulse as a prediction-game layer built on top of Pacifica testnet market data.
+I use this document to describe the current Pacifica Pulse implementation boundary, not just the intended v1 shape.
 
-This document turns the decisions from [`Readme.md`](./Readme.md), [`Resources.md`](./Resources.md), and [`Research.md`](./Research.md) into an implementation boundary I can actually build against without scope drift.
-
-Research baseline used for this document: April 7, 2026.
+This version reflects the code that exists in the repository today across the SvelteKit frontend, the Go backend, PostgreSQL persistence, the settlement worker, and the derived leaderboard flow.
 
 ---
 
-## 1. Confirmed Product Boundary
+## 1. Current Product Boundary
 
-### What v1 is
+### What Pacifica Pulse is today
 
-Pacifica Pulse v1 is a read-only prediction platform that:
+Pacifica Pulse is a read-only prediction platform that:
 
 - consumes Pacifica testnet market data
-- lets users create short-duration prediction markets
-- lets users take virtual YES / NO positions
+- lets guest players create short-duration prediction markets
+- lets players take virtual YES / NO positions
 - settles markets from Pacifica data
-- pays out virtual winnings mathematically
+- pays out virtual winnings with fixed transparent math
+- exposes a public leaderboard derived from stored activity
 
-### What v1 is not
+### What it still is not
 
-I am explicitly not building these in v1:
+I am explicitly not building these in the current product:
 
 - AI summaries
 - real trading
 - wallet authentication
 - withdrawals
 - Pacifica signed write operations
-- builder-code integration
-- API Agent Keys
-- token transfer flows
+- reward redemption
+- internal open-interest snapshot markets
 
 ### Virtual value model
 
-The app will use virtual balances, but those balances will still be tied to real Pacifica-derived market outcomes.
+The app uses virtual balances tied to real Pacifica-derived outcomes.
 
 That means:
 
 - users do not trade real assets
 - users do not need a wallet to participate
-- winnings are calculated from the prediction engine
-- the game reflects what would have happened under the chosen prediction rules
+- the backend stays authoritative for all balances and settlements
+- the product behaves like a prediction game, not like an exchange client
 
 ---
 
-## 2. Prediction Types
+## 2. Implemented Market Scope
 
-### Supported in v1
+### Supported market types
 
-I am locking v1 to the market types that Pacifica supports most cleanly with the highest settlement confidence.
+The implementation currently supports these market types:
 
-#### 1. Price threshold markets
+- `price_threshold`
+- `candle_direction`
+- `funding_threshold`
 
-Examples:
+### Deferred market types
 
-- Will BTC mark price be above 105000 in 30 minutes?
-- Will ETH mark price be below 4200 at expiry?
+These remain out of the live implementation:
 
-Why this is in v1:
-
-- Pacifica exposes live price data
-- Pacifica exposes historical mark-price candle data
-- settlement is easy to explain and easy to verify
-
-#### 2. Candle outcome markets
-
-Examples:
-
-- Will SOL close the next 5m candle bullish?
-- Will BTC close the next 15m candle bearish?
-
-Why this is in v1:
-
-- Pacifica exposes candle streams and mark-price candle streams
-- candle open and close are clear settlement points
-- the UI can show the exact candle interval being judged
-
-#### 3. Funding direction or threshold markets
-
-Examples:
-
-- Will BTC funding remain positive at the next funding settlement?
-- Will ETH funding be above 0.00001 at the next interval?
-
-Why this is in v1:
-
-- Pacifica exposes funding-related data
-- funding markets are differentiated enough from plain price bets
-- they fit the product story without needing derived AI logic
-
-### Explicitly deferred from v1
-
-#### Open interest change markets
-
-I am moving this out of v1.
-
-Reason:
-
-- Pacifica exposes live open interest
-- I did not confirm a dedicated historical OI endpoint in the reviewed docs
-- reliable settlement would require our backend to store reference and expiry snapshots
-
-This is the easiest deferred market type to bring back later because it only needs internal snapshot support, not an entirely new product model.
-
-#### Trade-flow markets
-
-I am not building these in v1.
-
-Reason:
-
-- they require continuous trade aggregation by our backend
-- settlement depends on our own derived rollups rather than one clean Pacifica field
-- they are harder to explain during a demo
-
-#### Volume-derived markets
-
-I am not building these in v1.
-
-Reason:
-
-- rolling volume metrics are less intuitive for short-horizon predictions
-- they add complexity without improving the core demo
-- they are weaker than price, candle, and funding markets for clarity
-
-### Deferred roadmap
-
-I only want to carry forward the deferred items that are still relatively safe to implement later.
-
-#### v1.5 candidate
-
-- open interest change markets, after I add backend snapshot capture and explicit OI settlement rules
-
-#### not prioritized yet
-
+- open-interest markets
 - trade-flow markets
 - volume-derived markets
 
+Open interest is still the most realistic v1.5 extension because it mainly needs internal snapshot capture and explicit settlement rules.
+
 ---
 
-## 3. Architecture Direction
+## 3. Stack And System Shape
 
 ### Chosen stack
 
-- Frontend: SvelteKit + Tailwind
+- Frontend: SvelteKit + Svelte 5 runes + Tailwind CSS
 - Backend: Go
 - Database: PostgreSQL
-- Realtime transport to UI: server-sent events or WebSocket from our backend
-- Pacifica integration: REST-first, read-only, with WebSocket kept optional for later targeted use
+- Realtime transport: SSE from our backend
+- Upstream data strategy: Pacifica REST-first, with WebSocket support isolated behind the backend
 
-### Why I am choosing Go for the backend
+### Why PostgreSQL without Redis still works here
 
-Go is the best fit for the hard parts of v1:
+I am intentionally keeping Redis out of the current system because:
 
-- timed settlement jobs and retry windows
-- deterministic settlement jobs
-- typed data models
-- a clean single-service deployment path
+- current scale does not justify another moving part
+- authoritative state already lives in PostgreSQL
+- the leaderboard can be handled as derived queries plus focused indexes
+- correctness and operational simplicity matter more than speculative cache layers right now
 
-### Tradeoff versus Fastify
+### High-level request flow
 
-Fastify would reduce context switching because the frontend is already TypeScript-based.
+The live app now looks like this:
 
-I am still choosing Go because v1 reliability depends more on:
-
-- ingestion stability
-- job scheduling
-- settlement correctness
-- clear service boundaries
-
-than on sharing types with the frontend.
+1. The browser hits SvelteKit routes.
+2. SvelteKit proxies `/api/*` calls to the Go backend.
+3. The Go backend owns sessions, balance rules, markets, positions, settlements, leaderboard reads, and SSE.
+4. PostgreSQL stores identity, balances, markets, positions, and settlement audit records.
+5. Pacifica stays behind the backend for context reads, settlement reads, and optional realtime ingestion.
 
 ---
 
-## 4. System Boundary
+## 4. Current Frontend Architecture
 
-### Pacifica owns
+### Current pages
 
-- live market data
-- historical market data
-- market metadata
-- funding and candle truth used for settlement
+The frontend currently includes these route groups:
 
-### Pacifica Pulse owns
+- landing page at `/`
+- dashboard at `/dashboard`
+- create-market flow at `/markets/create`
+- market detail at `/markets/[id]`
+- resolved market view at `/markets/[id]/resolved`
+- portfolio at `/portfolio`
+- leaderboard at `/leaderboard`
 
-- prediction market definitions
-- virtual user balances
-- virtual positions
-- payout calculations
-- market countdowns
-- settlement orchestration
-- resolved-market history
-- UI-facing aggregation
+### Frontend responsibilities
 
-### Why the frontend should not talk to Pacifica directly
+The frontend is responsible for:
 
-I want the backend in the middle because it gives me:
+- presenting real market state
+- creating or reusing guest sessions before protected actions
+- collecting market creation and position-placement input
+- rendering balance, position, and market detail reads
+- rendering the leaderboard snapshot returned by the backend
 
-- one place to manage Pacifica rate limits
-- one place to decide when faster Pacifica reads are actually worth the cost
-- one settlement source of truth
-- simpler frontend code
-- cleaner future extension into auth or rewards
+### Frontend boundary rules
 
----
+I keep these rules in place:
 
-## 5. High-Level Component Design
+- the frontend should not talk directly to Pacifica
+- the frontend should not compute settlement or balance authority
+- the frontend should not rank leaderboard results itself
+- the frontend should prefer one backend request per page snapshot where that stays practical
 
-### Frontend
+### Frontend data-loading pattern
 
-The SvelteKit frontend will contain:
+The codebase currently uses two frontend data-loading styles:
 
-- dashboard page for active and resolved markets
-- market creation flow with creator-side and creator-stake inputs
-- market detail page
-- portfolio page for virtual positions and balance
-- live countdown and result UI
+- lightweight client-side fetch flows for dashboard, create-market, market detail, and portfolio
+- a route-level page load for the leaderboard snapshot so the route renders from one backend response
 
-Frontend responsibilities:
+This is a practical middle ground for the current repo. I have not forced every page into one loading strategy yet.
 
-- rendering live market state
-- collecting market creation inputs
-- collecting the creator's initial side and stake as part of market creation
-- placing virtual positions
-- showing virtual PnL and resolved outcomes
+### Frontend proxy layer
 
-Frontend non-responsibilities:
+SvelteKit exposes a catch-all `/api/[...path]` proxy route so the browser always talks to the app shell and forwards cookies cleanly to the Go backend.
 
-- no direct Pacifica API access
-- no settlement logic
-- no authoritative balance updates
+That gives me:
 
-### Backend API
-
-The Go backend will expose:
-
-- guest session endpoints
-- player profile endpoints
-- balance endpoints
-- market creation endpoints that can also auto-place the creator's first stake
-- market listing and detail endpoints
-- virtual position endpoints
-- internal settlement workers
-- realtime event feed for frontend updates
-
-### Data layer
-
-PostgreSQL will store:
-
-- player records
-- player balances
-- markets
-- market snapshots we choose to retain
-- positions
-- payouts
-- settlement audit records
-
-I am not adding Redis in v1.
-
-Why:
-
-- the MVP does not need distributed caching yet
-- PostgreSQL is enough for correctness and demo scale
-- adding Redis now would increase moving parts without solving a proven bottleneck
+- a single browser-facing origin
+- cookie continuity
+- less frontend environment branching
+- a cleaner place to centralize backend URL configuration
 
 ---
 
-## 6. Identity Without Wallet Auth
+## 5. Current Backend Architecture
 
-### Chosen approach
+### Backend modules
 
-I will use guest player identities in v1.
-
-Each player gets:
-
-- a backend-issued player ID
-- an opaque session token stored in a secure cookie
-- an optional display name for leaderboard-style UI later
-
-### Why this is the right v1 choice
-
-- no wallet is required
-- balances can still persist across page refreshes
-- the backend can enforce authoritative balance updates
-- this leaves room for future account linking without rebuilding the whole data model
-
-### Tradeoff versus local-only storage
-
-Local-only storage would be faster to prototype, but I am not choosing it because:
-
-- users would lose progress across devices
-- virtual balances would be trivial to tamper with
-- later migration to real accounts would be messy
-
----
-
-## 7. Market Definition Rules
-
-### Market schema intent
-
-Every market must carry enough data to settle without interpretation drift.
-
-Required fields:
-
-- `id`
-- `title`
-- `symbol`
-- `market_type`
-- `condition_operator`
-- `threshold_value`
-- `source_type`
-- `source_interval`
-- `reference_value`
-- `expiry_time`
-- `status`
-- `result`
-- `settlement_value`
-- `resolved_at`
-- `resolution_reason`
-
-Every created market in v1 also carries one creator-commitment rule at the API level:
-
-- the creator must choose `YES` or `NO`
-- the creator must commit an initial stake amount
-- the backend should create the market and the creator's first position in one transaction
-
-### Market type mapping
-
-#### Price threshold
-
-- `market_type = price_threshold`
-- `source_type = mark_price`
-- `source_interval = null`
-
-#### Candle outcome
-
-- `market_type = candle_direction`
-- `source_type = mark_price_candle`
-- `source_interval = 1m | 5m | 15m | ...`
-
-#### Funding threshold
-
-- `market_type = funding_threshold`
-- `source_type = funding_rate`
-- `source_interval = funding_epoch`
-
-### Why I am standardizing candle settlement on mark-price candles
-
-Pacifica exposes both trade-price candles and mark-price candles.
-
-I am choosing mark-price candles for v1 candle settlement because:
-
-- they align better with the rest of the prediction framing
-- they reduce ambiguity when price spikes or low-liquidity prints distort traded candles
-- they make the settlement source more consistent
-
-Tradeoff:
-
-- trade-price candle fans may expect raw traded closes instead
-- I accept that tradeoff because v1 needs consistency more than market microstructure nuance
-
----
-
-## 8. Settlement Rules
-
-### Core settlement principle
-
-Every market must resolve from one authoritative Pacifica-derived value at one exact timestamp boundary.
-
-I will not settle any market using vague wording like:
-
-- around expiry
-- near close
-- recent average
-
-### Settlement by market type
-
-#### Price threshold markets
-
-Settlement rule:
-
-- fetch Pacifica mark-price data in batched REST requests at expiry time
-- settle from the first Pacifica price snapshot whose own timestamp is at or after expiry
-- compare it against the market threshold
-
-Result examples:
-
-- `mark_price > threshold` => YES
-- `mark_price <= threshold` => NO
-
-Why I am choosing this rule in v1:
-
-- it avoids depending on always-on WebSocket subscriptions for settlement
-- it lets one REST request cover all symbols instead of one request per market
-- it keeps the settlement boundary auditable because I can persist the exact Pacifica timestamp that qualified
-
-Tradeoff:
-
-- the first request sent at expiry is not automatically valid
-- I must inspect the returned Pacifica timestamp and retry briefly if the snapshot still predates expiry
-
-#### Candle outcome markets
-
-Settlement rule:
-
-- resolve against the close of the selected mark-price candle interval
-- compare candle close against candle open
-
-Fetch strategy:
-
-- fetch historical mark-price candles on demand at resolution time
-- do not continuously poll prices for candle settlement in v1
-
-Result examples:
-
-- `close > open` => bullish => YES
-- `close <= open` => bearish-or-flat => NO
-
-I am intentionally treating flat as NO in v1 because it removes draw handling complexity.
-
-#### Funding markets
-
-Settlement rule:
-
-- resolve using the first funding record whose settlement timestamp is at or after expiry
-- compare the final funding value with the threshold or sign rule
-
-Fetch strategy:
-
-- fetch funding history on demand near resolution time
-- do not continuously poll funding data in v1
-
-### Settlement execution model
-
-I will use a backend worker that:
-
-- polls for markets approaching expiry
-- fetches authoritative Pacifica settlement data
-- groups due price markets so one batched REST price request can serve multiple expiries or symbols
-- validates the Pacifica response timestamp before settling a price market
-- retries briefly instead of guessing if the returned price snapshot still predates expiry
-- computes result
-- updates balances and positions in one database transaction
-- records the raw settlement value and source used
-
-Payout application is part of the settlement transaction itself, not a second asynchronous follow-up step.
-
-### Market-data fetch cadence by market type
-
-- price threshold markets are the only v1 market type that may need short near-expiry retries
-- candle outcome markets should use historical mark-price candles on demand instead of frequent polling
-- funding markets should use historical funding records on demand instead of frequent polling
-- periodic broad polling such as every 30 minutes is useful for display analytics, not for point-in-time price-threshold settlement
-
-### Why I am not settling from only live WebSocket memory
-
-Live subscription state is useful for UI updates, but it should not be the only settlement source.
-
-I want a final fetch step because it gives me:
-
-- cleaner recovery after reconnects
-- more deterministic settlement
-- better auditability
-
-I am also not making always-on Pacifica WebSocket subscriptions the default settlement path in v1 because:
-
-- batched REST reads are easier to reason about under a small hackathon workload
-- the price endpoint already returns all symbols, which reduces request fan-out
-- candle and funding markets do not benefit enough from continuous live subscriptions to justify the extra complexity
-
----
-
-## 9. Virtual Balance and Payout Model
-
-### Chosen v1 model
-
-I am choosing a simple fixed-odds prediction game model with virtual stakes.
-
-Each player has:
-
-- a starting virtual balance
-- stakeable amounts per market
-- winnings or losses applied after settlement
-- creator participation in any market they open
-
-### Payout approach
-
-For v1, I want fixed transparent math over financial realism.
-
-Recommended v1 rule:
-
-- each position stakes a chosen virtual amount
-- if the prediction is correct, payout = stake + profit
-- if the prediction is wrong, loss = full stake
-
-Entry-time balance rule:
-
-- placing a position removes the stake from spendable balance immediately
-- the stake remains tracked as locked balance until settlement completes
-
-Settlement-time balance rule:
-
-- losers receive no additional balance credit
-- winners receive their fixed `potential_payout`
-- settlement clears the locked stake accounting for both winners and losers
-
-### Simpler profit option
-
-The cleanest first version is fixed-odds by side at entry time or an even simpler house rule.
-
-Recommended default:
-
-- YES and NO both start at even odds
-- payout is `2x stake` on win and `0` on loss, minus no platform fee in v1
-
-Creator rule:
-
-- market creation requires the creator to choose a side
-- market creation requires the creator to commit an initial stake
-- the backend should handle market creation and creator auto-stake in one transactional flow
-
-Why I prefer this first:
-
-- easy to explain in a demo
-- easy to verify
-- no AMM design
-- no pool-balancing complexity
-
-### Deferred alternative
-
-A pooled-odds model can come later if I want:
-
-- changing odds
-- crowd sentiment visuals
-- richer market dynamics
-
-I am not choosing it now because it adds balancing and display complexity without improving the first demo enough.
-
----
-
-## 10. Backend Modules
-
-### Module list
-
-I am splitting the backend into these modules:
+The backend is currently split into these modules:
 
 - `auth`
 - `player`
 - `balance`
+- `leaderboard`
 - `market`
 - `position`
 - `settlement`
@@ -559,492 +172,241 @@ I am splitting the backend into these modules:
 - `config`
 - `storage`
 
-This keeps the upgradeability benefits of a more layered design without turning the backend into a scattered set of tiny services.
+### Route wiring
 
-### `auth`
-
-Owns:
-
-- guest session creation
-- session validation
-- session lookup
-- future wallet or external auth upgrades
-
-Possesses:
-
-- auth-facing request and response schemas
-- session models
-- auth service and session service
-- auth controller exports for route wiring in `main.go`
-
-### `player`
-
-Owns:
-
-- player identity and profile only
-
-Possesses:
-
-- player schemas
-- player service
-- player controller exports for profile access
-
-Boundary rule:
-
-- `player` does not own balances or sessions
-
-### `balance`
-
-Owns:
-
-- virtual balance state
-- balance locking and unlocking
-- debits, credits, and payout application
-
-Possesses:
-
-- balance schemas
-- balance service
-- balance controller exports for read access
-
-Boundary rule:
-
-- all spendable-value mutations must pass through `balance`
-
-### `market`
-
-Owns:
-
-- market creation, including creator auto-stake orchestration
-- market validation
-- market listing and market detail
-- supported market-type rules
-
-Possesses:
-
-- market schemas
-- market service
-- market validation service
-- market controller exports
-
-### `position`
-
-Owns:
-
-- placing YES or NO positions
-- reading a player's position history
-
-Possesses:
-
-- position schemas
-- position service
-- position controller exports
-
-Boundary rule:
-
-- `position` depends on `market` for market eligibility and on `balance` for stake locking
-
-### `settlement`
-
-Owns:
-
-- expiry scanning
-- deterministic market resolution
-- payout orchestration
-- settlement audit creation
-
-Possesses:
-
-- settlement worker
-- settlement service
-- payout coordination service
-- internal settlement schemas
-
-Boundary rule:
-
-- `settlement` coordinates resolution and payout completion in one transaction, while `pacifica` provides source data and balance state changes remain explicit persistence-backed mutations
-
-### `pacifica`
-
-Owns:
-
-- Pacifica REST integration
-- Pacifica WebSocket integration
-- subscription and heartbeat management
-- normalization of vendor data into internal data shapes
-
-Possesses:
-
-- Pacifica DTOs
-- REST and WebSocket client services
-- subscription service
-
-### `realtime`
-
-Owns:
-
-- SSE stream delivery
-- backend event fan-out to the client-facing stream
-
-Possesses:
-
-- event schemas
-- stream controller export
-- realtime hub and publisher services
-
-### `config`
-
-Owns:
-
-- environment loading
-- config validation
-- runtime configuration structs
-
-### `storage`
-
-Owns:
-
-- database connection
-- transactions
-- repository wiring
-- persistence implementations
-
-### Route wiring rule
-
-Routes will remain assigned in `main.go`.
+`backend/cmd/api/main.go` remains the composition root.
 
 That means:
 
-- modules export controllers or handler functions
-- `main.go` constructs dependencies
-- `main.go` assigns routes explicitly
+- modules export controllers or services
+- `main.go` wires dependencies and repositories
+- routes are registered explicitly in one place
+- the settlement worker is started beside the HTTP server
 
-I am choosing this because it keeps startup and route ownership easy to scan.
+### Current API surface
 
-## 11. API Shape
-
-### External app endpoints by module
-
-#### `auth`
+The implemented backend routes are:
 
 - `POST /api/v1/players/guest`
-
-#### `player`
-
 - `GET /api/v1/players/me`
-
-#### `balance`
-
 - `GET /api/v1/players/me/balance`
-
-#### `market`
-
+- `GET /api/v1/players/me/positions`
+- `GET /api/v1/leaderboard`
+- `GET /api/v1/stream`
 - `POST /api/v1/markets`
 - `GET /api/v1/markets`
-- `GET /api/v1/markets/:id`
+- `GET /api/v1/markets/context`
+- `GET /api/v1/markets/{market_id}`
+- `POST /api/v1/markets/{market_id}/positions`
 
-#### `position`
+### Public versus session-protected reads
 
-- `POST /api/v1/markets/:id/positions`
-- `GET /api/v1/players/me/positions`
+The current split is deliberate:
 
-#### `realtime`
+- guest identity, balance, positions, and market creation need a valid session
+- market listings, market detail, realtime stream, and leaderboard reads are public
 
-- `GET /api/v1/stream`
-
-### Internal-only jobs
-
-- market-expiry scanner
-- settlement worker
-- Pacifica subscription manager
-
-### Why I am not exposing Pacifica-shaped endpoints to the frontend
-
-I want our API to be product-shaped, not vendor-shaped.
-
-That keeps the frontend focused on:
-
-- markets
-- positions
-- balances
-- outcomes
-
-instead of making the UI understand Pacifica transport details.
-
-For creation specifically, I prefer one product-shaped market-create route over a frontend-managed two-step sequence that first creates the market and then separately places the creator's opening stake.
+That keeps the discovery surface simple while still protecting player-specific state.
 
 ---
 
-## 12. Database Design
+## 6. Market Creation And Position Flow
 
-### Chosen schema direction
+### Creator flow
 
-I am choosing Option C as the database direction for v1.
+Market creation is no longer metadata-only.
 
-That means I want a middle-ground schema that is:
+Every created market requires:
 
-- simple enough to ship quickly
-- explicit enough to settle markets safely
-- flexible enough to grow into v1.5 and v2 without a rewrite
+- market definition
+- creator side selection
+- creator stake amount
 
-Why I am choosing it:
+The backend creates the market and the creator's opening position in one transaction.
 
-- it keeps identity, balances, market state, positions, and settlement audit separate
-- it supports guest users now and wallet linking later
-- it supports fixed-odds v1 now and additive feature growth later
+### Additional participant flow
 
-### Core tables
+Other players join existing markets through:
 
-#### `players`
+- `POST /api/v1/markets/{market_id}/positions`
 
-Purpose:
+That route validates:
 
-- persistent user identity independent of wallet auth
+- session ownership
+- market eligibility
+- side input
+- stake amount
+- balance availability
 
-Core fields:
+### Why I am keeping this product-shaped
 
-- `id`
-- `display_name`
-- `created_at`
-- `updated_at`
+I prefer this contract because:
 
-#### `player_sessions`
-
-Purpose:
-
-- backend-controlled guest sessions without storing raw session tokens
-
-Core fields:
-
-- `id`
-- `player_id`
-- `session_token_hash`
-- `expires_at`
-- `created_at`
-
-#### `player_balances`
-
-Purpose:
-
-- authoritative virtual balance state with lockable funds
-
-Core fields:
-
-- `player_id`
-- `available_balance`
-- `locked_balance`
-- `updated_at`
-
-Why the split matters:
-
-- `available_balance` handles spendable value
-- `locked_balance` prevents double-spending while markets are unresolved
-
-#### `markets`
-
-Purpose:
-
-- market definition plus lifecycle state in one readable v1 record
-
-Core fields:
-
-- `id`
-- `title`
-- `symbol`
-- `market_type`
-- `condition_operator`
-- `threshold_value`
-- `source_type`
-- `source_interval`
-- `reference_value`
-- `expiry_time`
-- `status`
-- `result`
-- `settlement_value`
-- `resolved_at`
-- `resolution_reason`
-- `created_by_player_id`
-- `created_at`
-
-Why this is enough for v1:
-
-- the market can be settled later without guessing intent
-- the read path stays simple because definition and outcome live together
-
-#### `positions`
-
-Purpose:
-
-- each virtual YES or NO participation entry
-
-Core fields:
-
-- `id`
-- `player_id`
-- `market_id`
-- `side`
-- `stake_amount`
-- `potential_payout`
-- `status`
-- `created_at`
-- `settled_at`
-
-Why I store `potential_payout`:
-
-- fixed-odds values should be locked at entry time
-- future payout-rule changes should not rewrite old position economics
-
-#### `market_settlements`
-
-Purpose:
-
-- auditable settlement record tied to the exact Pacifica-derived source used
-
-Core fields:
-
-- `id`
-- `market_id`
-- `pacifica_source`
-- `source_timestamp`
-- `raw_payload`
-- `settlement_value`
-- `result`
-- `created_at`
-
-Why this table matters:
-
-- settlement is the highest-risk backend operation
-- the audit trail makes disputes and debugging much easier
-
-### Optional v1 table
-
-#### `market_snapshots`
-
-I am keeping this optional in true v1.
-
-Use cases:
-
-- charting
-- replay
-- debugging
-- future OI support
-
-I only want to add it early if I decide one of these becomes a real requirement.
-
-### Why this schema scales well
-
-This schema is easy to extend because most future work is additive.
-
-Examples:
-
-- wallet auth can add `player_wallets` or `auth_identities`
-- rewards can add a `reward_ledger`
-- leaderboard views can derive from balances, positions, and settlements
-- open interest support can add `market_snapshots`
-- advanced payout systems can add odds history or pool tables later
-
-### Where the schema would start to strain
-
-I would revisit the design if the product grows into:
-
-- dynamic odds or pooled liquidity
-- highly custom multi-condition market logic
-- event-sourced analytics at larger scale
-- real trade execution with full order lifecycle tracking
-
-### Supporting documentation
-
-I am keeping the full schema reasoning in [`schema.md`](./schema.md) so implementation can rely on one dedicated source of truth when migrations start.
+- the frontend stays simple
+- the backend owns the transactional rules
+- creator participation is guaranteed at creation time
+- balance locking stays authoritative
 
 ---
 
-## 13. Pacifica Integration Design
+## 7. Settlement Architecture
 
-### Read-only sources used in v1
+### Core principle
 
-- market info
-- prices
-- mark-price candles
-- funding history
-- live price subscriptions
-- live mark-price candle subscriptions
+Every market resolves from one explicit Pacifica-derived source.
 
-### Pacifica integration modules
+I do not let the app settle from vague or approximate values.
 
-#### REST client
+### Current settlement paths
 
-Responsibilities:
+- price markets settle from Pacifica mark-price snapshots
+- candle markets settle from Pacifica mark-price candles
+- funding markets settle from Pacifica funding records
 
-- fetch market metadata
-- fetch settlement values
-- fetch candle history for market creation context
-- fetch funding data for funding market resolution
+### Current execution model
 
-#### WebSocket client
+The settlement worker:
 
-Responsibilities:
+- scans for active markets nearing expiry
+- batches price-fetch planning
+- retries if a returned price snapshot predates the actual expiry boundary
+- resolves the market through the correct resolver path
+- writes settlement audit data
+- updates markets, positions, and balances in one transaction
 
-- maintain Pacifica subscription connections
-- send heartbeat pings
-- reconnect safely
-- fan live updates into backend state and frontend streams
+### Why REST-first is still the default
 
-### Failure strategy
+I continue to prefer a final authoritative REST fetch instead of settling purely from in-memory live subscriptions because:
 
-If Pacifica connectivity drops:
-
-- market creation should remain available only if recent source data is still fresh enough
-- active market UIs should show delayed-data status
-- settlement should retry instead of guessing
-
-I would rather delay settlement briefly than settle from uncertain data.
+- reconnect recovery is simpler
+- auditability is better
+- the logic is easier to reason about under hackathon scale
 
 ---
 
-## 14. Realtime Delivery To The Frontend
+## 8. Leaderboard Architecture
 
-### Chosen direction
+### Current leaderboard design
 
-I prefer server-sent events first, with a later upgrade path to WebSocket if the UI truly needs bidirectional realtime.
+The leaderboard is now a real product feature, not a placeholder page.
 
-Why SSE fits v1:
+It is implemented as:
 
-- simpler transport for live dashboards
-- enough for pushing market updates, countdown state, and settlement results
-- easier operationally than adding another bidirectional channel immediately
+- one public backend snapshot route at `GET /api/v1/leaderboard`
+- one Go service that fans out category reads in parallel
+- one PostgreSQL aggregation layer that derives rankings from stored data
+- one SvelteKit page load that renders from the backend snapshot
 
-Tradeoff:
+### Categories currently exposed
 
-- WebSocket is more flexible long term
-- SSE is enough for the first product shape because the frontend mostly consumes updates
+- top predictors
+- top creators
+- best streaks
+- most active
 
----
+### Why I chose a derived query layer first
 
-## 15. Security and Abuse Notes
+This is the right current tradeoff because:
 
-### v1 security focus
+- current scale does not justify Redis
+- current scale does not justify a leaderboard table or materialized view
+- the queries stay transparent and auditable
+- the rankings are derived from already authoritative data
 
-Because there is no wallet auth and no real asset movement, the main risks are:
+### Performance controls already in place
 
-- session abuse
-- market spam
-- virtual balance tampering attempts
-- excessive Pacifica fan-out
-
-### Controls I want in v1
-
-- secure signed session cookies
-- server-authoritative balances
-- rate limiting on market creation
-- rate limiting on position placement
-- backend-only Pacifica access
-- configuration from environment variables only
+- focused leaderboard indexes in the migrations
+- one snapshot endpoint instead of multiple category endpoints
+- parallel category reads in Go
+- cache headers on the public leaderboard route
 
 ---
 
-## 16. Versioned Roadmap
+## 9. Data Model
 
-### v1
+### Core persistent tables
+
+The current implementation relies on these primary tables:
+
+- `players`
+- `player_sessions`
+- `player_balances`
+- `markets`
+- `positions`
+- `market_settlements`
+
+### What PostgreSQL owns today
+
+PostgreSQL currently stores:
+
+- guest player identity
+- secure session lookup material
+- available and locked balances
+- market definitions and lifecycle state
+- player positions and payout meaning
+- settlement audit records
+
+### What is still derived instead of stored separately
+
+These are still query-derived layers:
+
+- leaderboard rankings
+- dashboard grouping of active versus resolved markets
+- player-facing summaries built from markets and positions
+
+That is intentional. I do not want to add write-time denormalization before there is a real scale need.
+
+---
+
+## 10. Realtime And Read Performance
+
+### Realtime path
+
+The realtime surface currently uses SSE from the backend.
+
+The stream is meant to carry backend-owned event types such as:
+
+- `market.created`
+- `market.updated`
+- `market.settled`
+
+### Read-performance choices already implemented
+
+I have already made these platform-level choices:
+
+- backend-owned Pacifica access instead of direct browser fan-out
+- PostgreSQL-first reads with no Redis
+- one proxy layer in SvelteKit for browser API calls
+- one snapshot endpoint for leaderboard
+- focused Postgres indexes for leaderboard reads
+
+### Where I have intentionally not optimized yet
+
+- I have not introduced Redis
+- I have not introduced materialized leaderboard views
+- I have not made every page fully server-rendered
+- I have not added aggressive background prefetching
+
+Those are conscious deferrals, not omissions by accident.
+
+---
+
+## 11. Current Implementation Gaps
+
+The codebase is in a stronger state than the earlier planning docs implied, but a few gaps still matter:
+
+- the landing page still contains unsupported marketing language such as AI and signals that do not match the current v1 scope
+- the frontend still uses `adapter-auto` instead of `@sveltejs/adapter-vercel`
+- some frontend flows still rely on post-mount fetching rather than route-level loads
+- the leaderboard is live, but deeper player profile drill-downs are not part of the current product
+
+I want the documentation to reflect these gaps clearly so the repo does not overstate what is shipped.
+
+---
+
+## 12. Current Roadmap
+
+### Current v1 baseline
 
 - guest player accounts
 - virtual balances
@@ -1053,44 +415,39 @@ Because there is no wallet auth and no real asset movement, the main risks are:
 - funding markets
 - Pacifica read-only integration
 - deterministic settlement
+- public leaderboard snapshot
 
-### v1.5
+### v1.5 candidates
 
-- open interest markets backed by internal snapshot storage
-- richer charts and market history
-- better odds visualization if needed
+- open-interest markets backed by internal snapshot storage
+- more complete landing-page cleanup
+- broader server-side page loading where it improves perceived speed
 
-### v2
+### v2 candidates
 
 - wallet auth
-- optional reward redemption or testnet token mapping
-- leaderboard and gamification polish
+- reward mapping or redemption
+- richer leaderboard and player-profile surfaces
 
-### v3
+### v3 candidates
 
 - real Pacifica trade bridge
 - builder-code integration
 - API Agent Keys
-- optional AI assistance if the product still benefits from it
 
 ---
 
-## 17. Final Decision Summary
+## 13. Final Position
 
-I am building Pacifica Pulse v1 as a simple, high-confidence, read-only prediction game.
+The current architecture is a practical v1 game platform, not just a backend prototype.
 
-The key architecture decisions are:
+The key decisions that now define the implementation are:
 
 - keep Pacifica integration read-only
-- use Go for backend reliability
-- use PostgreSQL without Redis in v1
-- use guest identities instead of wallet auth
-- support only price, candle, and funding markets
-- settle every market from one explicit Pacifica-derived source
-- use virtual balances and transparent payout math
-- defer open interest to the next safe version
-- leave trade-flow, volume-derived markets, AI, and real trading out of v1
+- keep balances and settlement server-authoritative
+- keep Redis out until scale justifies it
+- use product-shaped backend routes
+- derive leaderboard reads from PostgreSQL instead of building a separate cache system
+- keep the frontend pointed at our backend and proxy layer, not at Pacifica directly
 
-This is the smallest architecture that still feels like the real product instead of a loose prototype.
-
-
+That gives me a product that is small enough to move quickly, but structured enough to grow without rewriting the foundations.

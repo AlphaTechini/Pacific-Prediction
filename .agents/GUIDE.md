@@ -28,10 +28,13 @@
 - Redis is not part of v1.
 - Pacifica integration is read-only in v1 and should stay REST-first by default.
 - The frontend should talk only to our backend, not directly to Pacifica.
+- The frontend should use the SvelteKit backend proxy for browser API calls instead of reaching the Go service directly from page code.
 - Player identity in v1 uses guest accounts with backend-issued sessions.
 - Balances must be server-authoritative.
 - Market creators must choose a side and stake when creating a market, and that initial creator participation should be handled by the backend as part of one flow.
 - The frontend should prefer one backend route for "create market with creator auto-stake" instead of coordinating separate market-create and position-create requests.
+- Leaderboard is now part of the live v1 surface through a public backend snapshot route.
+- The leaderboard should stay a derived Postgres read model with focused indexes instead of Redis or a dedicated cache layer unless scale changes.
 
 ## Settlement Decisions
 
@@ -67,11 +70,12 @@
 
 ## Module Decisions
 
-- The backend module split is auth, player, balance, market, position, settlement, pacifica, realtime, config, and storage.
+- The backend module split is auth, player, balance, leaderboard, market, position, settlement, pacifica, realtime, config, and storage.
 - The backend also uses a shared internal domain package for enum-like values, ID aliases, UTC timestamp normalization, and reusable validation errors.
 - main.go owns explicit route registration.
 - Modules export controllers or handlers, while main.go constructs dependencies and assigns routes.
 - auth owns sessions, player owns identity, and balance owns spendable-value mutations.
+- leaderboard owns ranking snapshots derived from stored markets and positions.
 - Storage repository contracts are split by module concern and should be consumed through a transaction-scoped repository provider instead of ad hoc SQL access.
 - The HTTP wiring pattern uses an `httpapi.Application` container for shared dependencies and controller references, plus an `httpapi.Router` helper that main.go uses to register method-aware routes explicitly.
 - Guest sessions use opaque random tokens stored only in secure cookies, while PostgreSQL stores the token hash and the initial virtual balance is provisioned during guest creation from environment-backed config.
