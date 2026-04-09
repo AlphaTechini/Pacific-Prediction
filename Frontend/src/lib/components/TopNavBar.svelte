@@ -1,5 +1,7 @@
 <script lang="ts">
   import Button from './Button.svelte';
+  import { guestSession } from '$lib/guest-session';
+
   let { activePage = '' }: { activePage?: string } = $props();
 
   const navLinks = [
@@ -23,7 +25,21 @@
       {/each}
     </div>
     <div class="flex items-center gap-4">
-      <Button variant="ghost" class="px-4 py-2 text-sm">Log In</Button>
+      <div class="hidden items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-outline sm:flex">
+        {#if $guestSession.status === 'ready' && $guestSession.player}
+          <span class="h-2 w-2 rounded-full bg-primary-container shadow-[0_0_8px_rgba(0,240,255,0.4)]"></span>
+          <span class="text-primary">{$guestSession.player.displayName}</span>
+        {:else if $guestSession.status === 'loading'}
+          <span class="h-2 w-2 rounded-full bg-tertiary-fixed-dim animate-pulse"></span>
+          <span>Starting Guest</span>
+        {:else if $guestSession.status === 'error'}
+          <span class="h-2 w-2 rounded-full bg-error"></span>
+          <span>Guest Unavailable</span>
+        {:else}
+          <span class="h-2 w-2 rounded-full bg-outline"></span>
+          <span>Guest Session</span>
+        {/if}
+      </div>
       <Button variant="primary" class="px-5 py-2 text-sm scale-95">Launch Terminal</Button>
     </div>
   </div>

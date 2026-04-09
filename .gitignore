@@ -1,2 +1,8 @@
+.env
+.env.*
+!.env.example
+Frontend/.env
+Frontend/.env.*
+!Frontend/.env.example
 task.md
 

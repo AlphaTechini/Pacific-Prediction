@@ -1,6 +1,14 @@
 <script lang="ts">
 	import '../app.css';
+	import { onMount } from 'svelte';
+
+	import { ensureGuestSession } from '$lib/guest-session';
+
 	let { children } = $props();
+
+	onMount(() => {
+		void ensureGuestSession();
+	});
 </script>
 
 <svelte:head>
