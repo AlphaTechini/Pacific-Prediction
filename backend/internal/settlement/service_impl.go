@@ -17,6 +17,7 @@ type service struct {
 	marketRepository            storage.MarketRepository
 	priceResolver               PriceResolver
 	candleResolver              CandleResolver
+	fundingResolver             FundingResolver
 	txManager                   settlementTxManager
 	marketRepositoryFactory     func(storage.Queryer) storage.MarketRepository
 	settlementRepositoryFactory func(storage.Queryer) storage.SettlementRepository
@@ -29,6 +30,7 @@ type ServiceDeps struct {
 	PacificaClient              pacifica.RESTClient
 	PriceResolver               PriceResolver
 	CandleResolver              CandleResolver
+	FundingResolver             FundingResolver
 	TxManager                   settlementTxManager
 	MarketRepositoryFactory     func(storage.Queryer) storage.MarketRepository
 	SettlementRepositoryFactory func(storage.Queryer) storage.SettlementRepository
@@ -64,10 +66,16 @@ func NewService(deps ServiceDeps) Service {
 		candleResolver = NewCandleResolver(deps.PacificaClient)
 	}
 
+	fundingResolver := deps.FundingResolver
+	if fundingResolver == nil && deps.PacificaClient != nil {
+		fundingResolver = NewFundingResolver(deps.PacificaClient)
+	}
+
 	return &service{
 		marketRepository:            deps.MarketRepository,
 		priceResolver:               priceResolver,
 		candleResolver:              candleResolver,
+		fundingResolver:             fundingResolver,
 		txManager:                   deps.TxManager,
 		marketRepositoryFactory:     marketRepositoryFactory,
 		settlementRepositoryFactory: settlementRepositoryFactory,
@@ -105,6 +113,8 @@ func (s *service) SettleMarket(ctx context.Context, marketID domain.MarketID) (A
 		return s.settlePriceMarket(ctx, item)
 	case domain.MarketTypeCandleDirection:
 		return s.settleCandleMarket(ctx, item)
+	case domain.MarketTypeFundingThreshold:
+		return s.settleFundingMarket(ctx, item)
 	default:
 		return attemptFromMarket(item), nil
 	}
@@ -174,16 +184,22 @@ func (s *service) settleDueMarketItems(ctx context.Context, items []storage.Mark
 	}
 
 	for _, item := range items {
-		if item.MarketType != domain.MarketTypeCandleDirection {
-			continue
-		}
+		switch item.MarketType {
+		case domain.MarketTypeCandleDirection:
+			attempt, err := s.settleCandleMarket(ctx, item)
+			if err != nil {
+				return nil, err
+			}
 
-		attempt, err := s.settleCandleMarket(ctx, item)
-		if err != nil {
-			return nil, err
-		}
+			attemptByID[item.ID] = attempt
+		case domain.MarketTypeFundingThreshold:
+			attempt, err := s.settleFundingMarket(ctx, item)
+			if err != nil {
+				return nil, err
+			}
 
-		attemptByID[item.ID] = attempt
+			attemptByID[item.ID] = attempt
+		}
 	}
 
 	attempts := make([]Attempt, 0, len(items))
@@ -226,6 +242,23 @@ func (s *service) settleCandleMarket(ctx context.Context, item storage.Market) (
 	}
 
 	return s.persistCandleResolution(ctx, item, resolution)
+}
+
+func (s *service) settleFundingMarket(ctx context.Context, item storage.Market) (Attempt, error) {
+	if item.MarketType != domain.MarketTypeFundingThreshold {
+		return attemptFromMarket(item), nil
+	}
+
+	resolution, err := s.resolveDueFundingMarket(ctx, item)
+	if err != nil {
+		if errors.Is(err, errSettlementSourceNotReady) {
+			return attemptFromMarket(item), nil
+		}
+
+		return Attempt{}, err
+	}
+
+	return s.persistFundingResolution(ctx, item, resolution)
 }
 
 func (s *service) settlePriceBatch(ctx context.Context, batch PriceFetchBatch, marketsByID map[domain.MarketID]storage.Market) ([]Attempt, error) {
@@ -339,6 +372,20 @@ func (s *service) resolveDueCandleMarket(ctx context.Context, item storage.Marke
 	})
 }
 
+func (s *service) resolveDueFundingMarket(ctx context.Context, item storage.Market) (FundingResolution, error) {
+	if s.fundingResolver == nil {
+		return FundingResolution{}, fmt.Errorf("funding resolver is not configured")
+	}
+
+	return s.fundingResolver.Resolve(ctx, FundingMarket{
+		ID:                item.ID,
+		Symbol:            item.Symbol,
+		ConditionOperator: item.ConditionOperator,
+		ThresholdValue:    item.ThresholdValue,
+		ExpiryTime:        item.ExpiryTime,
+	})
+}
+
 func (s *service) resolveDuePriceBatch(ctx context.Context, markets []PriceMarket) ([]PriceResolution, error) {
 	resolutions, err := s.priceResolver.ResolveBatch(ctx, markets)
 	if err == nil {
@@ -397,6 +444,59 @@ func (s *service) persistCandleResolution(ctx context.Context, item storage.Mark
 		return nil
 	}); err != nil {
 		return Attempt{}, fmt.Errorf("persist candle settlement: %w", err)
+	}
+
+	return Attempt{
+		MarketID:      item.ID,
+		MarketType:    item.MarketType,
+		Settled:       true,
+		SettlementID:  &settlementID,
+		SettledAt:     &resolvedAt,
+		SettlementRef: resolution.PacificaSource,
+	}, nil
+}
+
+func (s *service) persistFundingResolution(ctx context.Context, item storage.Market, resolution FundingResolution) (Attempt, error) {
+	if s.txManager == nil {
+		return Attempt{}, fmt.Errorf("settlement transaction manager is not configured")
+	}
+
+	settlementID, err := NewSettlementID()
+	if err != nil {
+		return Attempt{}, err
+	}
+
+	resolvedAt := resolution.SettlementTime
+	if err := s.txManager.WithinTransaction(ctx, func(tx pgx.Tx) error {
+		marketRepository := s.marketRepositoryFactory(tx)
+		settlementRepository := s.settlementRepositoryFactory(tx)
+
+		if _, err := settlementRepository.Create(ctx, storage.CreateSettlementInput{
+			ID:              settlementID,
+			MarketID:        item.ID,
+			PacificaSource:  resolution.PacificaSource,
+			SourceTimestamp: resolution.SettlementTime,
+			RawPayload:      resolution.RawPayload,
+			SettlementValue: resolution.FundingRate,
+			Result:          resolution.Result,
+		}); err != nil {
+			return fmt.Errorf("create funding settlement audit: %w", err)
+		}
+
+		if _, err := marketRepository.UpdateSettlement(ctx, storage.UpdateMarketSettlementInput{
+			MarketID:         item.ID,
+			Status:           domain.MarketStatusResolved,
+			Result:           resolution.Result,
+			SettlementValue:  resolution.FundingRate,
+			ResolvedAt:       resolvedAt,
+			ResolutionReason: "funding_threshold_history",
+		}); err != nil {
+			return fmt.Errorf("update market settlement state: %w", err)
+		}
+
+		return nil
+	}); err != nil {
+		return Attempt{}, fmt.Errorf("persist funding settlement: %w", err)
 	}
 
 	return Attempt{

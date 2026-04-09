@@ -43,6 +43,7 @@
 - Candle markets should fetch historical mark-price candles on demand at resolution time rather than polling continuously.
 - Candle markets should only be valid when `expiry_time` lands exactly on the selected candle interval boundary so settlement can resolve one explicit finished candle.
 - Funding markets should fetch historical funding records on demand at resolution time rather than polling continuously.
+- Funding markets should resolve from the first Pacifica funding record whose settlement timestamp is at or after the market expiry.
 - Always-on Pacifica WebSocket subscriptions are not the default settlement path in v1.
 
 ## Deferred Roadmap
