@@ -11,6 +11,7 @@ I use the backend as one Go service that owns guest identity, virtual balances, 
 - I use PostgreSQL without Redis because current scale does not justify another runtime dependency.
 - I keep market creation product-shaped so one request can create the market and the creator's first staked position together.
 - I keep the leaderboard as a derived Postgres read model instead of a separate cache or write-time table.
+- I allow local `.env` loading in the config layer so `go run` works from normal backend working directories without manual environment exporting.
 
 ## Current Backend Capabilities
 
