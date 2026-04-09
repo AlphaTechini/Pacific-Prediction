@@ -3,6 +3,7 @@ package settlement
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -34,7 +35,12 @@ func (r *fundingResolver) Resolve(ctx context.Context, market FundingMarket) (Fu
 		Limit:               5,
 	})
 	if err != nil {
-		return FundingResolution{}, fmt.Errorf("fetch funding history for market settlement: %w", err)
+		wrapped := fmt.Errorf("fetch funding history for market settlement: %w", err)
+		if errors.Is(err, pacifica.ErrTemporaryFailure) {
+			return FundingResolution{}, markTemporarySettlementError(wrapped)
+		}
+
+		return FundingResolution{}, wrapped
 	}
 
 	entry, err := findFundingSettlementEntry(items, market.Symbol, market.ExpiryTime)

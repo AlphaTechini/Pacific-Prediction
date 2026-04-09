@@ -3,6 +3,7 @@ package settlement
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -41,7 +42,12 @@ func (r *candleResolver) Resolve(ctx context.Context, market CandleMarket) (Cand
 		Limit:     3,
 	})
 	if err != nil {
-		return CandleResolution{}, fmt.Errorf("fetch mark price candle for market settlement: %w", err)
+		wrapped := fmt.Errorf("fetch mark price candle for market settlement: %w", err)
+		if errors.Is(err, pacifica.ErrTemporaryFailure) {
+			return CandleResolution{}, markTemporarySettlementError(wrapped)
+		}
+
+		return CandleResolution{}, wrapped
 	}
 
 	candle, err := findSettlementCandle(items, market.Symbol, market.SourceInterval, candleOpenTime, candleCloseTime)

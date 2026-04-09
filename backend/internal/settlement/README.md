@@ -10,6 +10,7 @@ I use this folder for expiry scanning, settlement execution, payout calculation,
 - This package should own deterministic result computation and transactional updates across markets, positions, and balances.
 - In v1, price-threshold settlement should prefer batched Pacifica REST reads at expiry time, while candle and funding settlement should resolve from historical endpoints on demand.
 - A price market should settle only when the Pacifica response timestamp is at or after expiry, and the worker should retry briefly instead of guessing if the first fetch is too early.
+- Temporary Pacifica fetch failures and temporary source gaps should leave a market active after a short retry instead of forcing a guessed result or surfacing a hard settlement failure.
 - The worker should plan price fetches in shared near-expiry batches instead of scheduling one timer or cron job per market.
 - Settlement completion should update positions, clear locked stake accounting, and credit winners inside the same transaction as the market-resolution audit write.
 - The tradeoff is that it depends on several other packages, but I prefer one explicit coordination point over scattered settlement code.
@@ -25,6 +26,7 @@ I use this folder for expiry scanning, settlement execution, payout calculation,
 - To find price settlement resolver behavior visit [price_resolver_impl.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/price_resolver_impl.go).
 - To find settlement ID generation visit [ids.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/ids.go).
 - To find settlement error markers visit [errors.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/errors.go).
+- To find settlement retry classification and retry flow visit [retry.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/retry.go).
 - To find candle settlement resolver contracts visit [candle_resolver.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/candle_resolver.go).
 - To find candle settlement resolver behavior visit [candle_resolver_impl.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/candle_resolver_impl.go).
 - To find funding settlement resolver contracts visit [funding_resolver.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/funding_resolver.go).
@@ -39,6 +41,7 @@ I use this folder for expiry scanning, settlement execution, payout calculation,
 
 - The settlement orchestration can be found in [service.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/service.go).
 - The settlement scan flow can be found in [service_impl.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/service_impl.go) and [worker_impl.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/worker_impl.go).
+- The settlement retry behavior can be found in [retry.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/retry.go).
 - The price settlement path can be found in [price_resolver.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/price_resolver.go) and [price_resolver_impl.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/price_resolver_impl.go).
 - The candle settlement path can be found in [candle_resolver.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/candle_resolver.go) and [candle_resolver_impl.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/candle_resolver_impl.go).
 - The funding settlement path can be found in [funding_resolver.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/funding_resolver.go) and [funding_resolver_impl.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/funding_resolver_impl.go).

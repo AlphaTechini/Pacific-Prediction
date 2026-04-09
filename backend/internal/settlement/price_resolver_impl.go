@@ -3,6 +3,7 @@ package settlement
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -27,7 +28,12 @@ func NewPriceResolver(pacificaClient pacifica.RESTClient) PriceResolver {
 func (r *priceResolver) Resolve(ctx context.Context, market PriceMarket) (PriceResolution, error) {
 	items, err := r.fetchPrices(ctx, []string{market.Symbol})
 	if err != nil {
-		return PriceResolution{}, fmt.Errorf("fetch price for market settlement: %w", err)
+		wrapped := fmt.Errorf("fetch price for market settlement: %w", err)
+		if errors.Is(err, pacifica.ErrTemporaryFailure) {
+			return PriceResolution{}, markTemporarySettlementError(wrapped)
+		}
+
+		return PriceResolution{}, wrapped
 	}
 
 	return resolvePriceSnapshot(market, items)
@@ -40,7 +46,12 @@ func (r *priceResolver) ResolveBatch(ctx context.Context, markets []PriceMarket)
 
 	items, err := r.fetchPrices(ctx, uniqueMarketSymbols(markets))
 	if err != nil {
-		return nil, fmt.Errorf("fetch batch prices for market settlement: %w", err)
+		wrapped := fmt.Errorf("fetch batch prices for market settlement: %w", err)
+		if errors.Is(err, pacifica.ErrTemporaryFailure) {
+			return nil, markTemporarySettlementError(wrapped)
+		}
+
+		return nil, wrapped
 	}
 
 	resolutions := make([]PriceResolution, 0, len(markets))
@@ -109,7 +120,11 @@ func findPriceSnapshot(items []pacifica.PriceSnapshot, symbol string) (pacifica.
 		}
 	}
 
-	return pacifica.PriceSnapshot{}, domain.NewValidationError("symbol", "price snapshot is missing for settlement symbol", symbol)
+	return pacifica.PriceSnapshot{}, fmt.Errorf(
+		"%w: price snapshot is not yet available for symbol=%s",
+		errSettlementSourceNotReady,
+		symbol,
+	)
 }
 
 func compareThreshold(actualValue, thresholdValue string, operator domain.ConditionOperator) (domain.MarketResult, error) {

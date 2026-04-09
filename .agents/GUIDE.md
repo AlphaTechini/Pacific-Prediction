@@ -88,4 +88,5 @@
 - Price settlement should group due markets into batched Pacifica price fetches instead of creating per-market cron jobs.
 - The settlement worker should maintain a configurable near-expiry lookahead window and retry interval for price-fetch planning.
 - T6.4 resolves due price-threshold markets through the settlement service, validates Pacifica timestamps before expiry, writes a settlement audit row, and marks the market resolved in one transaction.
+- T6.8 treats temporary Pacifica fetch failures and temporary source gaps as retriable settlement outcomes across price, candle, and funding resolution paths, leaving markets active after retry exhaustion instead of guessing.
 

@@ -119,7 +119,7 @@ func (c *HTTPMarketInfoClient) ListMarketInfo(ctx context.Context) ([]MarketInfo
 		return nil, fmt.Errorf("fetch market info: %w", err)
 	}
 	if !payload.Success {
-		return nil, fmt.Errorf("fetch market info: pacifica returned success=false")
+		return nil, markTemporaryError(fmt.Errorf("fetch market info: pacifica returned success=false"))
 	}
 
 	items := make([]MarketInfo, 0, len(payload.Data))
@@ -151,7 +151,7 @@ func (c *HTTPMarketInfoClient) ListPrices(ctx context.Context, filter PriceFilte
 		return nil, fmt.Errorf("fetch prices: %w", err)
 	}
 	if !payload.Success {
-		return nil, fmt.Errorf("fetch prices: pacifica returned success=false")
+		return nil, markTemporaryError(fmt.Errorf("fetch prices: pacifica returned success=false"))
 	}
 
 	symbolFilter := makeSymbolFilter(filter.Symbols)
@@ -206,7 +206,7 @@ func (c *HTTPMarketInfoClient) ListMarkPriceCandles(ctx context.Context, query M
 		return nil, fmt.Errorf("fetch mark price candles: %w", err)
 	}
 	if !payload.Success {
-		return nil, fmt.Errorf("fetch mark price candles: pacifica returned success=false")
+		return nil, markTemporaryError(fmt.Errorf("fetch mark price candles: pacifica returned success=false"))
 	}
 
 	items := make([]MarkPriceCandle, 0, len(payload.Data))
@@ -246,7 +246,7 @@ func (c *HTTPMarketInfoClient) ListFundingRateHistory(ctx context.Context, query
 		return nil, fmt.Errorf("fetch funding history: %w", err)
 	}
 	if !payload.Success {
-		return nil, fmt.Errorf("fetch funding history: pacifica returned success=false")
+		return nil, markTemporaryError(fmt.Errorf("fetch funding history: pacifica returned success=false"))
 	}
 
 	items := make([]FundingRateHistoryEntry, 0, len(payload.Data))
@@ -306,12 +306,12 @@ func (c *HTTPMarketInfoClient) fetchJSON(ctx context.Context, path string, param
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("perform request: %w", err)
+		return markTemporaryError(fmt.Errorf("perform request: %w", err))
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status %d", resp.StatusCode)
+		return markTemporaryError(fmt.Errorf("unexpected status %d", resp.StatusCode))
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(target); err != nil {

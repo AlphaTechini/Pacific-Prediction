@@ -12,6 +12,7 @@ I use this folder to isolate every Pacifica REST and WebSocket integration behin
 - Market metadata should be fetched here and cached aggressively so symbol validation can stay dynamic without making market creation depend on a fresh Pacifica call every time.
 - In v1, I should prefer REST for settlement and only keep WebSocket as an optional targeted acceleration path rather than an always-on requirement.
 - The prices endpoint returns all symbols in one response, so price-threshold settlement should prefer batched reads over per-symbol requests.
+- Temporary upstream transport and status failures should be marked here so settlement can retry safely without swallowing contract or parsing bugs.
 - The tradeoff is a translation boundary, but it protects the rest of the app from vendor-specific transport details.
 
 ## Logic Tracking
@@ -26,6 +27,7 @@ I use this folder to isolate every Pacifica REST and WebSocket integration behin
 - To find normalized Pacifica funding-history models visit [funding.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/pacifica/funding.go).
 - To find normalized Pacifica live event models visit [live_events.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/pacifica/live_events.go).
 - To find the current HTTP REST client implementation visit [market_info_http_client.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/pacifica/market_info_http_client.go).
+- To find temporary Pacifica error markers visit [errors.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/pacifica/errors.go).
 - To find reconnect and heartbeat orchestration visit [subscription_manager_impl.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/pacifica/subscription_manager_impl.go).
 - To find the market module that consumes this metadata for validation visit [../market/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/README.md).
 - To find settlement dependency mapping visit [../settlement/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/README.md).
@@ -38,6 +40,7 @@ I use this folder to isolate every Pacifica REST and WebSocket integration behin
 - The Pacifica WebSocket contract boundary can be found in [websocket_client.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/pacifica/websocket_client.go).
 - The Pacifica subscription manager boundary can be found in [subscription_manager.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/pacifica/subscription_manager.go).
 - The current read-only HTTP REST fetch path can be found in [market_info_http_client.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/pacifica/market_info_http_client.go).
+- The temporary upstream error classification can be found in [errors.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/pacifica/errors.go).
 - The normalized settlement data models can be found in [prices.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/pacifica/prices.go), [candles.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/pacifica/candles.go), and [funding.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/pacifica/funding.go).
 - The normalized live update models can be found in [live_events.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/pacifica/live_events.go).
 - The reconnect and heartbeat implementation can be found in [subscription_manager_impl.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/pacifica/subscription_manager_impl.go).

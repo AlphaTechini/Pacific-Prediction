@@ -2,7 +2,6 @@ package settlement
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -246,7 +245,7 @@ func (s *service) settlePriceMarket(ctx context.Context, item storage.Market) (A
 
 	resolution, err := s.resolveDuePriceMarket(ctx, item)
 	if err != nil {
-		if errors.Is(err, errSettlementSourceNotReady) {
+		if isRetryableSettlementError(err) {
 			return attemptFromMarket(item), nil
 		}
 
@@ -263,7 +262,7 @@ func (s *service) settleCandleMarket(ctx context.Context, item storage.Market) (
 
 	resolution, err := s.resolveDueCandleMarket(ctx, item)
 	if err != nil {
-		if errors.Is(err, errSettlementSourceNotReady) {
+		if isRetryableSettlementError(err) {
 			return attemptFromMarket(item), nil
 		}
 
@@ -280,7 +279,7 @@ func (s *service) settleFundingMarket(ctx context.Context, item storage.Market) 
 
 	resolution, err := s.resolveDueFundingMarket(ctx, item)
 	if err != nil {
-		if errors.Is(err, errSettlementSourceNotReady) {
+		if isRetryableSettlementError(err) {
 			return attemptFromMarket(item), nil
 		}
 
@@ -313,7 +312,7 @@ func (s *service) settlePriceBatch(ctx context.Context, batch PriceFetchBatch, m
 
 	resolutions, err := s.resolveDuePriceBatch(ctx, priceMarkets)
 	if err != nil {
-		if errors.Is(err, errSettlementSourceNotReady) {
+		if isRetryableSettlementError(err) {
 			attempts := make([]Attempt, 0, len(priceMarkets))
 			for _, market := range priceMarkets {
 				attempts = append(attempts, Attempt{
@@ -371,20 +370,9 @@ func (s *service) resolveDuePriceMarket(ctx context.Context, item storage.Market
 		ExpiryTime:        item.ExpiryTime,
 	}
 
-	resolution, err := s.priceResolver.Resolve(ctx, market)
-	if err == nil {
-		return resolution, nil
-	}
-
-	if s.priceRetryInterval <= 0 || !errors.Is(err, errSettlementSourceNotReady) {
-		return PriceResolution{}, err
-	}
-
-	if sleepErr := s.sleep(ctx, s.priceRetryInterval); sleepErr != nil {
-		return PriceResolution{}, err
-	}
-
-	return s.priceResolver.Resolve(ctx, market)
+	return resolveWithRetry(ctx, s.priceRetryInterval, s.sleep, func() (PriceResolution, error) {
+		return s.priceResolver.Resolve(ctx, market)
+	})
 }
 
 func (s *service) resolveDueCandleMarket(ctx context.Context, item storage.Market) (CandleResolution, error) {
@@ -392,12 +380,14 @@ func (s *service) resolveDueCandleMarket(ctx context.Context, item storage.Marke
 		return CandleResolution{}, fmt.Errorf("candle resolver is not configured")
 	}
 
-	return s.candleResolver.Resolve(ctx, CandleMarket{
-		ID:                item.ID,
-		Symbol:            item.Symbol,
-		ConditionOperator: item.ConditionOperator,
-		SourceInterval:    item.SourceInterval,
-		ExpiryTime:        item.ExpiryTime,
+	return resolveWithRetry(ctx, s.priceRetryInterval, s.sleep, func() (CandleResolution, error) {
+		return s.candleResolver.Resolve(ctx, CandleMarket{
+			ID:                item.ID,
+			Symbol:            item.Symbol,
+			ConditionOperator: item.ConditionOperator,
+			SourceInterval:    item.SourceInterval,
+			ExpiryTime:        item.ExpiryTime,
+		})
 	})
 }
 
@@ -406,30 +396,21 @@ func (s *service) resolveDueFundingMarket(ctx context.Context, item storage.Mark
 		return FundingResolution{}, fmt.Errorf("funding resolver is not configured")
 	}
 
-	return s.fundingResolver.Resolve(ctx, FundingMarket{
-		ID:                item.ID,
-		Symbol:            item.Symbol,
-		ConditionOperator: item.ConditionOperator,
-		ThresholdValue:    item.ThresholdValue,
-		ExpiryTime:        item.ExpiryTime,
+	return resolveWithRetry(ctx, s.priceRetryInterval, s.sleep, func() (FundingResolution, error) {
+		return s.fundingResolver.Resolve(ctx, FundingMarket{
+			ID:                item.ID,
+			Symbol:            item.Symbol,
+			ConditionOperator: item.ConditionOperator,
+			ThresholdValue:    item.ThresholdValue,
+			ExpiryTime:        item.ExpiryTime,
+		})
 	})
 }
 
 func (s *service) resolveDuePriceBatch(ctx context.Context, markets []PriceMarket) ([]PriceResolution, error) {
-	resolutions, err := s.priceResolver.ResolveBatch(ctx, markets)
-	if err == nil {
-		return resolutions, nil
-	}
-
-	if s.priceRetryInterval <= 0 || !errors.Is(err, errSettlementSourceNotReady) {
-		return nil, err
-	}
-
-	if sleepErr := s.sleep(ctx, s.priceRetryInterval); sleepErr != nil {
-		return nil, err
-	}
-
-	return s.priceResolver.ResolveBatch(ctx, markets)
+	return resolveWithRetry(ctx, s.priceRetryInterval, s.sleep, func() ([]PriceResolution, error) {
+		return s.priceResolver.ResolveBatch(ctx, markets)
+	})
 }
 
 func determinePositionSettlement(side domain.PositionSide, marketResult domain.MarketResult) (domain.PositionStatus, error) {
