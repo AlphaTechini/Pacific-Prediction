@@ -141,6 +141,10 @@ func validateCandleDirectionInput(input CreateInput, model ValidationModel) erro
 		return domain.NewValidationError("source_interval", "unsupported candle interval", input.SourceInterval)
 	}
 
+	if _, _, err := domain.CandleWindowForExpiry(input.ExpiryTime, input.SourceInterval); err != nil {
+		return domain.NewValidationError("expiry_time", "candle market expiry must align to the selected candle close boundary", input.ExpiryTime)
+	}
+
 	return nil
 }
 

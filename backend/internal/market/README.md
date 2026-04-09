@@ -10,6 +10,7 @@ I use this folder for market creation rules, market state transitions, and predi
 - This package should own supported market types, threshold validation, and status transitions.
 - Supported symbols should come from Pacifica market metadata instead of a hardcoded list, so symbol validation can track the actual tradable catalog without code churn.
 - Market creation should normalize and validate input before persistence so the write path stays deterministic and later HTTP handlers remain thin.
+- Candle-direction markets should support the Pacifica mark-price candle intervals I expose in validation and still require expiry times that land exactly on the chosen candle close boundary so settlement resolves one unambiguous candle.
 - Market creation context should come from Pacifica-backed symbol and price inputs so the UI can guide valid source choices before the user submits a market.
 - Market listing should expose active and resolved catalogs without forcing the frontend to piece together multiple transport calls for the default dashboard view.
 - Market detail should be readable through a single route-backed lookup so the frontend can hydrate a dedicated market page without reusing the list payload as a surrogate detail source.

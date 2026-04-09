@@ -16,6 +16,7 @@ import (
 type service struct {
 	marketRepository            storage.MarketRepository
 	priceResolver               PriceResolver
+	candleResolver              CandleResolver
 	txManager                   settlementTxManager
 	marketRepositoryFactory     func(storage.Queryer) storage.MarketRepository
 	settlementRepositoryFactory func(storage.Queryer) storage.SettlementRepository
@@ -27,6 +28,7 @@ type ServiceDeps struct {
 	MarketRepository            storage.MarketRepository
 	PacificaClient              pacifica.RESTClient
 	PriceResolver               PriceResolver
+	CandleResolver              CandleResolver
 	TxManager                   settlementTxManager
 	MarketRepositoryFactory     func(storage.Queryer) storage.MarketRepository
 	SettlementRepositoryFactory func(storage.Queryer) storage.SettlementRepository
@@ -57,9 +59,15 @@ func NewService(deps ServiceDeps) Service {
 		priceResolver = NewPriceResolver(deps.PacificaClient)
 	}
 
+	candleResolver := deps.CandleResolver
+	if candleResolver == nil && deps.PacificaClient != nil {
+		candleResolver = NewCandleResolver(deps.PacificaClient)
+	}
+
 	return &service{
 		marketRepository:            deps.MarketRepository,
 		priceResolver:               priceResolver,
+		candleResolver:              candleResolver,
 		txManager:                   deps.TxManager,
 		marketRepositoryFactory:     marketRepositoryFactory,
 		settlementRepositoryFactory: settlementRepositoryFactory,
@@ -92,11 +100,14 @@ func (s *service) SettleMarket(ctx context.Context, marketID domain.MarketID) (A
 		return Attempt{}, domain.NewValidationError("market_id", "market has not expired yet", marketID)
 	}
 
-	if item.MarketType != domain.MarketTypePriceThreshold {
+	switch item.MarketType {
+	case domain.MarketTypePriceThreshold:
+		return s.settlePriceMarket(ctx, item)
+	case domain.MarketTypeCandleDirection:
+		return s.settleCandleMarket(ctx, item)
+	default:
 		return attemptFromMarket(item), nil
 	}
-
-	return s.settlePriceMarket(ctx, item)
 }
 
 func (s *service) SettleDueMarkets(ctx context.Context, filter DueMarketFilter) ([]Attempt, error) {
@@ -162,6 +173,19 @@ func (s *service) settleDueMarketItems(ctx context.Context, items []storage.Mark
 		}
 	}
 
+	for _, item := range items {
+		if item.MarketType != domain.MarketTypeCandleDirection {
+			continue
+		}
+
+		attempt, err := s.settleCandleMarket(ctx, item)
+		if err != nil {
+			return nil, err
+		}
+
+		attemptByID[item.ID] = attempt
+	}
+
 	attempts := make([]Attempt, 0, len(items))
 	for _, item := range items {
 		attempts = append(attempts, attemptByID[item.ID])
@@ -185,6 +209,23 @@ func (s *service) settlePriceMarket(ctx context.Context, item storage.Market) (A
 	}
 
 	return s.persistPriceResolution(ctx, item, resolution)
+}
+
+func (s *service) settleCandleMarket(ctx context.Context, item storage.Market) (Attempt, error) {
+	if item.MarketType != domain.MarketTypeCandleDirection {
+		return attemptFromMarket(item), nil
+	}
+
+	resolution, err := s.resolveDueCandleMarket(ctx, item)
+	if err != nil {
+		if errors.Is(err, errSettlementSourceNotReady) {
+			return attemptFromMarket(item), nil
+		}
+
+		return Attempt{}, err
+	}
+
+	return s.persistCandleResolution(ctx, item, resolution)
 }
 
 func (s *service) settlePriceBatch(ctx context.Context, batch PriceFetchBatch, marketsByID map[domain.MarketID]storage.Market) ([]Attempt, error) {
@@ -284,6 +325,20 @@ func (s *service) resolveDuePriceMarket(ctx context.Context, item storage.Market
 	return s.priceResolver.Resolve(ctx, market)
 }
 
+func (s *service) resolveDueCandleMarket(ctx context.Context, item storage.Market) (CandleResolution, error) {
+	if s.candleResolver == nil {
+		return CandleResolution{}, fmt.Errorf("candle resolver is not configured")
+	}
+
+	return s.candleResolver.Resolve(ctx, CandleMarket{
+		ID:                item.ID,
+		Symbol:            item.Symbol,
+		ConditionOperator: item.ConditionOperator,
+		SourceInterval:    item.SourceInterval,
+		ExpiryTime:        item.ExpiryTime,
+	})
+}
+
 func (s *service) resolveDuePriceBatch(ctx context.Context, markets []PriceMarket) ([]PriceResolution, error) {
 	resolutions, err := s.priceResolver.ResolveBatch(ctx, markets)
 	if err == nil {
@@ -299,6 +354,59 @@ func (s *service) resolveDuePriceBatch(ctx context.Context, markets []PriceMarke
 	}
 
 	return s.priceResolver.ResolveBatch(ctx, markets)
+}
+
+func (s *service) persistCandleResolution(ctx context.Context, item storage.Market, resolution CandleResolution) (Attempt, error) {
+	if s.txManager == nil {
+		return Attempt{}, fmt.Errorf("settlement transaction manager is not configured")
+	}
+
+	settlementID, err := NewSettlementID()
+	if err != nil {
+		return Attempt{}, err
+	}
+
+	resolvedAt := resolution.CloseTime
+	if err := s.txManager.WithinTransaction(ctx, func(tx pgx.Tx) error {
+		marketRepository := s.marketRepositoryFactory(tx)
+		settlementRepository := s.settlementRepositoryFactory(tx)
+
+		if _, err := settlementRepository.Create(ctx, storage.CreateSettlementInput{
+			ID:              settlementID,
+			MarketID:        item.ID,
+			PacificaSource:  resolution.PacificaSource,
+			SourceTimestamp: resolution.CloseTime,
+			RawPayload:      resolution.RawPayload,
+			SettlementValue: resolution.ClosePrice,
+			Result:          resolution.Result,
+		}); err != nil {
+			return fmt.Errorf("create candle settlement audit: %w", err)
+		}
+
+		if _, err := marketRepository.UpdateSettlement(ctx, storage.UpdateMarketSettlementInput{
+			MarketID:         item.ID,
+			Status:           domain.MarketStatusResolved,
+			Result:           resolution.Result,
+			SettlementValue:  resolution.ClosePrice,
+			ResolvedAt:       resolvedAt,
+			ResolutionReason: "candle_direction_mark_price_close",
+		}); err != nil {
+			return fmt.Errorf("update market settlement state: %w", err)
+		}
+
+		return nil
+	}); err != nil {
+		return Attempt{}, fmt.Errorf("persist candle settlement: %w", err)
+	}
+
+	return Attempt{
+		MarketID:      item.ID,
+		MarketType:    item.MarketType,
+		Settled:       true,
+		SettlementID:  &settlementID,
+		SettledAt:     &resolvedAt,
+		SettlementRef: resolution.PacificaSource,
+	}, nil
 }
 
 func (s *service) persistPriceResolution(ctx context.Context, item storage.Market, resolution PriceResolution) (Attempt, error) {

@@ -25,6 +25,7 @@ I use this folder for expiry scanning, settlement execution, payout calculation,
 - To find settlement ID generation visit [ids.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/ids.go).
 - To find settlement error markers visit [errors.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/errors.go).
 - To find candle settlement resolver contracts visit [candle_resolver.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/candle_resolver.go).
+- To find candle settlement resolver behavior visit [candle_resolver_impl.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/candle_resolver_impl.go).
 - To find funding settlement resolver contracts visit [funding_resolver.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/funding_resolver.go).
 - To find settlement audit mapping models visit [audit.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/audit.go).
 - To find settlement tests visit [price_settlement_test.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/price_settlement_test.go), [price_fetch_plan_test.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/price_fetch_plan_test.go), and [worker_e2e_test.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/worker_e2e_test.go).
@@ -37,6 +38,6 @@ I use this folder for expiry scanning, settlement execution, payout calculation,
 - The settlement orchestration can be found in [service.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/service.go).
 - The settlement scan flow can be found in [service_impl.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/service_impl.go) and [worker_impl.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/worker_impl.go).
 - The price settlement path can be found in [price_resolver.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/price_resolver.go) and [price_resolver_impl.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/price_resolver_impl.go).
-- The candle settlement path can be found in [candle_resolver.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/candle_resolver.go).
+- The candle settlement path can be found in [candle_resolver.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/candle_resolver.go) and [candle_resolver_impl.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/candle_resolver_impl.go).
 - The funding settlement path can be found in [funding_resolver.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/funding_resolver.go).
 - The settlement audit persistence can be found in [../storage/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/storage/README.md).

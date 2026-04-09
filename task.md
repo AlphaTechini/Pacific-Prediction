@@ -932,7 +932,7 @@ Acceptance criteria:
 
 Status:
 
-- `todo`
+- `done`
 
 Owner:
 
