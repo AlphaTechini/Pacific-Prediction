@@ -9,6 +9,7 @@ import (
 type CreateInput struct {
 	Title              string
 	Symbol             string
+	SymbolTickSize     string
 	MarketType         domain.MarketType
 	ConditionOperator  domain.ConditionOperator
 	CreatorSide        domain.PositionSide

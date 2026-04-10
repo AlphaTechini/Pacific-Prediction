@@ -24,6 +24,15 @@ func FitsNumericScale(value string, maxScale int) bool {
 	return len(parts[1]) <= maxScale
 }
 
+func DecimalScale(value string) int {
+	parts := strings.SplitN(strings.TrimSpace(value), ".", 2)
+	if len(parts) < 2 {
+		return 0
+	}
+
+	return len(strings.TrimRight(parts[1], "0"))
+}
+
 func FormatFixedScaleDecimal(value *big.Rat, scale int) string {
 	if value == nil {
 		return ""

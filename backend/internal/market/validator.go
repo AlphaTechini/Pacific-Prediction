@@ -2,6 +2,7 @@ package market
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"strings"
 	"time"
@@ -18,14 +19,20 @@ type Validator interface {
 	ValidateCreateInput(ctx context.Context, input CreateInput) error
 }
 
+type ValidationConfig struct {
+	PriceThresholdCreationBandPercent string
+}
+
 type validationService struct {
 	symbolProvider SymbolProvider
+	config         ValidationConfig
 	now            func() time.Time
 }
 
-func NewValidationService(symbolProvider SymbolProvider) Validator {
+func NewValidationService(symbolProvider SymbolProvider, config ValidationConfig) Validator {
 	return &validationService{
 		symbolProvider: symbolProvider,
+		config:         config,
 		now: func() time.Time {
 			return domain.NowUTC()
 		},
@@ -79,7 +86,7 @@ func (s *validationService) ValidateCreateInput(ctx context.Context, input Creat
 
 	switch input.MarketType {
 	case domain.MarketTypePriceThreshold:
-		return validatePriceThresholdInput(s.now(), input)
+		return validatePriceThresholdInput(s.now(), input, s.config)
 	case domain.MarketTypeCandleDirection:
 		return validateCandleDirectionInput(s.now(), input, model)
 	case domain.MarketTypeFundingThreshold:
@@ -127,7 +134,7 @@ func validateExpiryTime(now, expiry time.Time) error {
 	return nil
 }
 
-func validatePriceThresholdInput(now time.Time, input CreateInput) error {
+func validatePriceThresholdInput(now time.Time, input CreateInput, config ValidationConfig) error {
 	if err := validateExpiryTime(now, input.ExpiryTime); err != nil {
 		return err
 	}
@@ -140,7 +147,15 @@ func validatePriceThresholdInput(now time.Time, input CreateInput) error {
 		return err
 	}
 
-	return nil
+	if !domain.FitsNumericScale(input.ThresholdValue, 8) {
+		return domain.NewValidationError("threshold_value", "threshold value must use no more than 8 decimal places", input.ThresholdValue)
+	}
+
+	if err := validateThresholdScaleForSymbol(input); err != nil {
+		return err
+	}
+
+	return validatePriceThresholdRange(input, config)
 }
 
 func validateCandleDirectionInput(now time.Time, input CreateInput, model ValidationModel) error {
@@ -206,6 +221,147 @@ func requireDecimal(field, value string) error {
 	}
 
 	return nil
+}
+
+func validateThresholdScaleForSymbol(input CreateInput) error {
+	maxScale := 8
+	if strings.TrimSpace(input.SymbolTickSize) != "" {
+		tickScale := domain.DecimalScale(input.SymbolTickSize)
+		if tickScale < maxScale {
+			maxScale = tickScale
+		}
+	}
+
+	if !domain.FitsNumericScale(input.ThresholdValue, maxScale) {
+		return domain.NewValidationError(
+			"threshold_value",
+			fmt.Sprintf("threshold value must use no more than %d decimal places for this symbol", maxScale),
+			input.ThresholdValue,
+		)
+	}
+
+	return nil
+}
+
+func validatePriceThresholdRange(input CreateInput, config ValidationConfig) error {
+	if strings.TrimSpace(config.PriceThresholdCreationBandPercent) == "" {
+		return fmt.Errorf("price-threshold creation band config is required")
+	}
+
+	threshold, err := domain.ParseDecimal(input.ThresholdValue)
+	if err != nil {
+		return domain.NewValidationError("threshold_value", "threshold value must be a valid decimal string", input.ThresholdValue)
+	}
+
+	referenceValue, err := domain.ParseDecimal(input.ReferenceValue)
+	if err != nil {
+		return domain.NewValidationError("reference_value", "reference value must be a valid decimal string", input.ReferenceValue)
+	}
+
+	if referenceValue.Sign() <= 0 {
+		return domain.NewValidationError("reference_value", "reference value must be greater than zero", input.ReferenceValue)
+	}
+
+	tickSize, err := domain.ParseDecimal(input.SymbolTickSize)
+	if err != nil {
+		return domain.NewValidationError("symbol", "symbol tick size must be a valid decimal string", input.SymbolTickSize)
+	}
+
+	if tickSize.Sign() <= 0 {
+		return domain.NewValidationError("symbol", "symbol tick size must be greater than zero", input.SymbolTickSize)
+	}
+
+	bandPercent, err := domain.ParseDecimal(config.PriceThresholdCreationBandPercent)
+	if err != nil {
+		return fmt.Errorf("parse price-threshold creation band percent: %w", err)
+	}
+
+	lowerBound, upperBound := calculatePriceThresholdBounds(referenceValue, bandPercent)
+	displayScale := thresholdDisplayScale(input.SymbolTickSize)
+	referenceDisplay := domain.FormatFixedScaleDecimal(referenceValue, displayScale)
+
+	distance := new(big.Rat).Sub(new(big.Rat).Set(threshold), referenceValue)
+	if distance.Sign() < 0 {
+		distance.Neg(distance)
+	}
+	if distance.Cmp(tickSize) < 0 {
+		return domain.NewValidationError(
+			"threshold_value",
+			fmt.Sprintf("threshold value must be at least one tick away from the creation reference %s", referenceDisplay),
+			input.ThresholdValue,
+		)
+	}
+
+	switch input.ConditionOperator {
+	case domain.ConditionOperatorGT, domain.ConditionOperatorGTE:
+		if threshold.Cmp(referenceValue) <= 0 {
+			return domain.NewValidationError(
+				"threshold_value",
+				fmt.Sprintf("threshold value must be above the creation reference %s", referenceDisplay),
+				input.ThresholdValue,
+			)
+		}
+
+		if threshold.Cmp(upperBound) > 0 {
+			return domain.NewValidationError(
+				"threshold_value",
+				fmt.Sprintf(
+					"threshold value must stay within the %s%% upper band from the creation reference (%s)",
+					config.PriceThresholdCreationBandPercent,
+					domain.FormatFixedScaleDecimal(upperBound, displayScale),
+				),
+				input.ThresholdValue,
+			)
+		}
+	case domain.ConditionOperatorLT, domain.ConditionOperatorLTE:
+		if threshold.Cmp(referenceValue) >= 0 {
+			return domain.NewValidationError(
+				"threshold_value",
+				fmt.Sprintf("threshold value must be below the creation reference %s", referenceDisplay),
+				input.ThresholdValue,
+			)
+		}
+
+		if threshold.Cmp(lowerBound) < 0 {
+			return domain.NewValidationError(
+				"threshold_value",
+				fmt.Sprintf(
+					"threshold value must stay within the %s%% lower band from the creation reference (%s)",
+					config.PriceThresholdCreationBandPercent,
+					domain.FormatFixedScaleDecimal(lowerBound, displayScale),
+				),
+				input.ThresholdValue,
+			)
+		}
+	default:
+		return domain.NewValidationError("condition_operator", "operator is not supported for price-threshold range validation", input.ConditionOperator)
+	}
+
+	return nil
+}
+
+func calculatePriceThresholdBounds(referenceValue, bandPercent *big.Rat) (*big.Rat, *big.Rat) {
+	oneHundred := big.NewRat(100, 1)
+	bandRatio := new(big.Rat).Quo(new(big.Rat).Set(bandPercent), oneHundred)
+	lowerMultiplier := new(big.Rat).Sub(big.NewRat(1, 1), bandRatio)
+	upperMultiplier := new(big.Rat).Add(big.NewRat(1, 1), bandRatio)
+
+	lowerBound := new(big.Rat).Mul(new(big.Rat).Set(referenceValue), lowerMultiplier)
+	upperBound := new(big.Rat).Mul(new(big.Rat).Set(referenceValue), upperMultiplier)
+
+	return lowerBound, upperBound
+}
+
+func thresholdDisplayScale(tickSize string) int {
+	scale := domain.DecimalScale(tickSize)
+	if scale <= 0 {
+		return 0
+	}
+	if scale > 8 {
+		return 8
+	}
+
+	return scale
 }
 
 func containsOperator(items []domain.ConditionOperator, target domain.ConditionOperator) bool {

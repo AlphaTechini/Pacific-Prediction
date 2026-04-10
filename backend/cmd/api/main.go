@@ -67,7 +67,9 @@ func main() {
 	playerService := player.NewService(playerRepository)
 	balanceService := balance.NewService(balanceRepository)
 	leaderboardService := leaderboard.NewService(leaderboardRepository)
-	marketValidator := market.NewValidationService(pacificaRESTClient)
+	marketValidator := market.NewValidationService(pacificaRESTClient, market.ValidationConfig{
+		PriceThresholdCreationBandPercent: cfg.Market.PriceThresholdCreationBandPercent,
+	})
 	marketService := market.NewServiceWithDeps(market.ServiceDeps{
 		MarketRepository:      marketRepository,
 		CreateContextProvider: pacificaRESTClient,

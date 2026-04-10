@@ -50,8 +50,9 @@ type listMarketsResponse struct {
 }
 
 type marketCreateContextResponse struct {
-	Symbols          []marketCreateContextSymbolResponse `json:"symbols"`
-	ValidationModels []marketValidationModelResponse     `json:"validation_models"`
+	Symbols                           []marketCreateContextSymbolResponse `json:"symbols"`
+	ValidationModels                  []marketValidationModelResponse     `json:"validation_models"`
+	PriceThresholdCreationBandPercent string                              `json:"price_threshold_creation_band_percent"`
 }
 
 type marketCreateContextSymbolResponse struct {
@@ -237,8 +238,9 @@ func toMarketCreateContextResponse(context market.CreateContext) marketCreateCon
 	}
 
 	return marketCreateContextResponse{
-		Symbols:          symbols,
-		ValidationModels: models,
+		Symbols:                           symbols,
+		ValidationModels:                  models,
+		PriceThresholdCreationBandPercent: context.PriceThresholdCreationBandPercent,
 	}
 }
 

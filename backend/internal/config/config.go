@@ -3,6 +3,7 @@ package config
 import (
 	"bufio"
 	"fmt"
+	"math/big"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -18,6 +19,7 @@ type Config struct {
 	MigrationsDir string
 	Auth          AuthConfig
 	Balance       BalanceConfig
+	Market        MarketConfig
 	Pacifica      PacificaConfig
 	Realtime      RealtimeConfig
 	Settlement    SettlementConfig
@@ -45,6 +47,10 @@ type AuthConfig struct {
 
 type BalanceConfig struct {
 	StartingBalance string
+}
+
+type MarketConfig struct {
+	PriceThresholdCreationBandPercent string
 }
 
 type PacificaConfig struct {
@@ -85,6 +91,11 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	marketConfig, err := loadMarketConfig()
+	if err != nil {
+		return Config{}, err
+	}
+
 	pacificaConfig, err := loadPacificaConfig()
 	if err != nil {
 		return Config{}, err
@@ -107,6 +118,7 @@ func Load() (Config, error) {
 		MigrationsDir: resolveMigrationsDir(getEnv("MIGRATIONS_DIR", defaultMigrationsDir()), dotEnvMeta),
 		Auth:          authConfig,
 		Balance:       balanceConfig,
+		Market:        marketConfig,
 		Pacifica:      pacificaConfig,
 		Realtime:      realtimeConfig,
 		Settlement:    settlementConfig,
@@ -434,6 +446,30 @@ func loadBalanceConfig() (BalanceConfig, error) {
 
 	return BalanceConfig{
 		StartingBalance: startingBalance,
+	}, nil
+}
+
+func loadMarketConfig() (MarketConfig, error) {
+	bandPercent := strings.TrimSpace(os.Getenv("MARKET_PRICE_THRESHOLD_CREATION_BAND_PERCENT"))
+	if bandPercent == "" {
+		return MarketConfig{}, fmt.Errorf("MARKET_PRICE_THRESHOLD_CREATION_BAND_PERCENT is required")
+	}
+
+	parsed, ok := new(big.Rat).SetString(bandPercent)
+	if !ok {
+		return MarketConfig{}, fmt.Errorf("MARKET_PRICE_THRESHOLD_CREATION_BAND_PERCENT must be a valid decimal value")
+	}
+
+	if parsed.Sign() <= 0 {
+		return MarketConfig{}, fmt.Errorf("MARKET_PRICE_THRESHOLD_CREATION_BAND_PERCENT must be greater than zero")
+	}
+
+	if parsed.Cmp(big.NewRat(100, 1)) >= 0 {
+		return MarketConfig{}, fmt.Errorf("MARKET_PRICE_THRESHOLD_CREATION_BAND_PERCENT must be less than 100")
+	}
+
+	return MarketConfig{
+		PriceThresholdCreationBandPercent: bandPercent,
 	}, nil
 }
 

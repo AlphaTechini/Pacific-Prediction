@@ -32,7 +32,8 @@
 		loadError: null as string | null,
 		submitError: null as string | null,
 		symbols: [] as MarketCreateContextSymbolResponse[],
-		validationModels: [] as MarketValidationModelResponse[]
+		validationModels: [] as MarketValidationModelResponse[],
+		priceThresholdCreationBandPercent: ''
 	});
 
 	const form = $state<FormState>({
@@ -61,6 +62,8 @@
 
 			createState.symbols = context.symbols;
 			createState.validationModels = context.validation_models;
+			createState.priceThresholdCreationBandPercent =
+				context.price_threshold_creation_band_percent;
 			createState.loadStatus = 'ready';
 
 			initializeFormDefaults();
@@ -132,6 +135,10 @@
 		return selectedModel()?.requires_interval ?? false;
 	}
 
+	function isPriceThresholdMarket(): boolean {
+		return selectedModel()?.market_type === 'price_threshold';
+	}
+
 	function operatorLabel(value: string): string {
 		const labels: Record<string, string> = {
 			gt: 'Greater Than',
@@ -171,6 +178,77 @@
 		return value && value.trim() !== '' ? value : 'Not available';
 	}
 
+	function decimalScale(value?: string): number {
+		if (!value) {
+			return 0;
+		}
+
+		const parts = value.trim().split('.', 2);
+		if (parts.length < 2) {
+			return 0;
+		}
+
+		return parts[1].replace(/0+$/, '').length;
+	}
+
+	function parseDecimalNumber(value?: string): number | null {
+		if (!value) {
+			return null;
+		}
+
+		const parsed = Number(value);
+		return Number.isFinite(parsed) ? parsed : null;
+	}
+
+	function thresholdDisplayScale(): number {
+		return Math.min(Math.max(decimalScale(selectedSymbol()?.tick_size), 0), 8);
+	}
+
+	function formatThresholdNumber(value: number): string {
+		return value.toFixed(thresholdDisplayScale());
+	}
+
+	function thresholdGuardrail():
+		| {
+				referenceValue: string;
+				tickSize: string;
+				bandPercent: string;
+				minThreshold: string;
+				maxThreshold: string;
+		  }
+		| null {
+		if (!isPriceThresholdMarket()) {
+			return null;
+		}
+
+		const symbol = selectedSymbol();
+		const referenceValue = parseDecimalNumber(symbol?.mark_price);
+		const tickSize = parseDecimalNumber(symbol?.tick_size);
+		const bandPercent = parseDecimalNumber(createState.priceThresholdCreationBandPercent);
+		if (referenceValue === null || tickSize === null || bandPercent === null || tickSize <= 0) {
+			return null;
+		}
+
+		const bandRatio = bandPercent / 100;
+		const lowerBound = referenceValue * (1 - bandRatio);
+		const upperBound = referenceValue * (1 + bandRatio);
+		const increasingRule = ['gt', 'gte'].includes(form.conditionOperator);
+		const minThreshold = increasingRule ? referenceValue + tickSize : lowerBound;
+		const maxThreshold = increasingRule ? upperBound : referenceValue - tickSize;
+
+		if (minThreshold > maxThreshold) {
+			return null;
+		}
+
+		return {
+			referenceValue: formatThresholdNumber(referenceValue),
+			tickSize: formatThresholdNumber(tickSize),
+			bandPercent: createState.priceThresholdCreationBandPercent,
+			minThreshold: formatThresholdNumber(minThreshold),
+			maxThreshold: formatThresholdNumber(maxThreshold)
+		};
+	}
+
 	function currentPriceText(): string {
 		return formatNumber(selectedSymbol()?.mark_price);
 	}
@@ -204,6 +282,14 @@
 		}
 
 		const thresholdValue = normalizeText(form.thresholdValue);
+		const guardrail = thresholdGuardrail();
+		if (guardrail) {
+			const directionText = ['gt', 'gte'].includes(form.conditionOperator)
+				? `${guardrail.referenceValue} and ${guardrail.maxThreshold}`
+				: `${guardrail.minThreshold} and ${guardrail.referenceValue}`;
+			return `This market settles YES when the observed value is ${operatorLabel(form.conditionOperator).toLowerCase()} the threshold you choose. Price thresholds must stay within ${guardrail.bandPercent}% of the creation reference, on the correct side of spot, so the valid zone is between ${directionText}.`;
+		}
+
 		if (needsThreshold() && thresholdValue !== '') {
 			return `This market settles YES when the observed value is ${operatorLabel(form.conditionOperator).toLowerCase()} ${thresholdValue}.`;
 		}
@@ -487,6 +573,31 @@
 										required={needsThreshold()}
 										type="text"
 									/>
+									{#if thresholdGuardrail()}
+										<div
+											class="bg-surface-container mt-3 space-y-2 rounded-sm border border-primary-container/15 p-3 text-xs"
+										>
+											<div class="flex items-center justify-between gap-4">
+												<span class="text-outline uppercase">Creation Reference</span>
+												<span class="text-primary font-mono"
+													>{thresholdGuardrail()?.referenceValue}</span
+												>
+											</div>
+											<div class="flex items-center justify-between gap-4">
+												<span class="text-outline uppercase">Allowed Threshold Range</span>
+												<span class="text-on-surface font-mono"
+													>{thresholdGuardrail()?.minThreshold} to
+													{thresholdGuardrail()?.maxThreshold}</span
+												>
+											</div>
+											<div class="flex items-center justify-between gap-4">
+												<span class="text-outline uppercase">Band / Minimum Step</span>
+												<span class="text-on-surface font-mono"
+													>{thresholdGuardrail()?.bandPercent}% / {thresholdGuardrail()?.tickSize}</span
+												>
+											</div>
+										</div>
+									{/if}
 								</label>
 							{/if}
 
@@ -676,6 +787,15 @@
 										>{formatNumber(selectedSymbol()?.volume_24h)}</span
 									>
 								</div>
+								{#if thresholdGuardrail()}
+									<div class="flex justify-between gap-4">
+										<span class="text-outline uppercase">Threshold Band</span>
+										<span class="text-on-surface font-mono"
+											>{thresholdGuardrail()?.minThreshold} to
+											{thresholdGuardrail()?.maxThreshold}</span
+										>
+									</div>
+								{/if}
 								<div class="flex justify-between gap-4">
 									<span class="text-outline uppercase"
 										>{usesAutomaticExpiry() ? 'Timing' : 'Expiry'}</span

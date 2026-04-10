@@ -3,8 +3,9 @@ package market
 import "time"
 
 type CreateContext struct {
-	Symbols          []CreateContextSymbol
-	ValidationModels []ValidationModel
+	Symbols                           []CreateContextSymbol
+	ValidationModels                  []ValidationModel
+	PriceThresholdCreationBandPercent string
 }
 
 type CreateContextSymbol struct {

@@ -54,6 +54,7 @@ export interface MarketValidationModelResponse {
 export interface MarketCreateContextResponse {
 	symbols: MarketCreateContextSymbolResponse[];
 	validation_models: MarketValidationModelResponse[];
+	price_threshold_creation_band_percent: string;
 }
 
 export interface CreateMarketRequest {

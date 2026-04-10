@@ -88,7 +88,12 @@ func NewServiceWithDeps(deps ServiceDeps) Service {
 func (s *service) Create(ctx context.Context, input CreateInput) (Record, error) {
 	now := domain.NowUTC()
 	normalized := normalizeCreateInput(input, now)
-	if err := s.validator.ValidateCreateInput(ctx, normalized); err != nil {
+	enriched, err := s.enrichCreateInput(ctx, normalized)
+	if err != nil {
+		return Record{}, err
+	}
+
+	if err := s.validator.ValidateCreateInput(ctx, enriched); err != nil {
 		return Record{}, err
 	}
 
@@ -109,16 +114,16 @@ func (s *service) Create(ctx context.Context, input CreateInput) (Record, error)
 
 	createMarketInput := storage.CreateMarketInput{
 		ID:                marketID,
-		Title:             normalized.Title,
-		Symbol:            normalized.Symbol,
-		MarketType:        normalized.MarketType,
-		ConditionOperator: normalized.ConditionOperator,
-		ThresholdValue:    normalized.ThresholdValue,
-		SourceType:        normalized.SourceType,
-		SourceInterval:    normalized.SourceInterval,
-		ReferenceValue:    normalized.ReferenceValue,
-		ExpiryTime:        normalized.ExpiryTime,
-		CreatedByPlayerID: normalized.CreatedByPlayerID,
+		Title:             enriched.Title,
+		Symbol:            enriched.Symbol,
+		MarketType:        enriched.MarketType,
+		ConditionOperator: enriched.ConditionOperator,
+		ThresholdValue:    enriched.ThresholdValue,
+		SourceType:        enriched.SourceType,
+		SourceInterval:    enriched.SourceInterval,
+		ReferenceValue:    enriched.ReferenceValue,
+		ExpiryTime:        enriched.ExpiryTime,
+		CreatedByPlayerID: enriched.CreatedByPlayerID,
 	}
 
 	var created storage.Market
@@ -143,18 +148,18 @@ func (s *service) Create(ctx context.Context, input CreateInput) (Record, error)
 		}
 
 		if _, createErr = balanceRepository.LockStake(ctx, storage.LockStakeInput{
-			PlayerID: normalized.CreatedByPlayerID,
-			Amount:   normalized.CreatorStakeAmount,
+			PlayerID: enriched.CreatedByPlayerID,
+			Amount:   enriched.CreatorStakeAmount,
 		}); createErr != nil {
 			return fmt.Errorf("lock creator stake: %w", createErr)
 		}
 
 		if _, createErr = positionRepository.Create(ctx, storage.CreatePositionInput{
 			ID:              creatorPositionID,
-			PlayerID:        normalized.CreatedByPlayerID,
+			PlayerID:        enriched.CreatedByPlayerID,
 			MarketID:        marketID,
-			Side:            normalized.CreatorSide,
-			StakeAmount:     normalized.CreatorStakeAmount,
+			Side:            enriched.CreatorSide,
+			StakeAmount:     enriched.CreatorStakeAmount,
 			PotentialPayout: potentialPayout,
 		}); createErr != nil {
 			return fmt.Errorf("create creator opening position: %w", createErr)
@@ -267,22 +272,39 @@ func (s *service) GetCreateContext(ctx context.Context) (CreateContext, error) {
 	}
 
 	return CreateContext{
-		Symbols:          symbols,
-		ValidationModels: SupportedValidationModels(),
+		Symbols:                           symbols,
+		ValidationModels:                  SupportedValidationModels(),
+		PriceThresholdCreationBandPercent: s.validatorConfig().PriceThresholdCreationBandPercent,
 	}, nil
 }
 
 func (s *service) ValidateCreateInput(ctx context.Context, input CreateInput) error {
-	return s.validator.ValidateCreateInput(ctx, normalizeCreateInput(input, domain.NowUTC()))
+	normalized := normalizeCreateInput(input, domain.NowUTC())
+	enriched, err := s.enrichCreateInput(ctx, normalized)
+	if err != nil {
+		return err
+	}
+
+	return s.validator.ValidateCreateInput(ctx, enriched)
 }
 
 func (s *service) SupportedValidationModels() []ValidationModel {
 	return SupportedValidationModels()
 }
 
+func (s *service) validatorConfig() ValidationConfig {
+	validationService, ok := s.validator.(*validationService)
+	if !ok {
+		return ValidationConfig{}
+	}
+
+	return validationService.config
+}
+
 func normalizeCreateInput(input CreateInput, now time.Time) CreateInput {
 	input.Title = strings.TrimSpace(input.Title)
 	input.Symbol = strings.ToUpper(strings.TrimSpace(input.Symbol))
+	input.SymbolTickSize = strings.TrimSpace(input.SymbolTickSize)
 	input.CreatorStakeAmount = strings.TrimSpace(input.CreatorStakeAmount)
 	input.ThresholdValue = strings.TrimSpace(input.ThresholdValue)
 	input.SourceInterval = strings.TrimSpace(input.SourceInterval)
