@@ -5,6 +5,7 @@
 
 	import type { MarketResponse, PositionResponse } from '$lib/api-types';
 	import Button from '$lib/components/Button.svelte';
+	import { formatAmount } from '$lib/number-display';
 	import TopNavBar from '$lib/components/TopNavBar.svelte';
 	import { ensureGuestSession } from '$lib/guest-session';
 	import {
@@ -375,11 +376,11 @@
 									<div class="mt-4 grid grid-cols-2 gap-4 text-xs">
 										<div>
 											<div class="text-outline tracking-[0.2em] uppercase">Stake</div>
-											<div class="text-on-surface mt-1 font-mono">{position.stake_amount}</div>
+											<div class="text-on-surface mt-1 font-mono">{formatAmount(position.stake_amount)}</div>
 										</div>
 										<div>
 											<div class="text-outline tracking-[0.2em] uppercase">Potential Payout</div>
-											<div class="text-on-surface mt-1 font-mono">{position.potential_payout}</div>
+											<div class="text-on-surface mt-1 font-mono">{formatAmount(position.potential_payout)}</div>
 										</div>
 									</div>
 								</div>
@@ -402,13 +403,13 @@
 						<div class="bg-surface-container-highest p-4">
 							<div class="text-outline text-[10px] tracking-[0.2em] uppercase">Available</div>
 							<div class="font-headline text-primary mt-2 text-xl font-bold">
-								{resolvedState.availableBalance}
+								{formatAmount(resolvedState.availableBalance)}
 							</div>
 						</div>
 						<div class="bg-surface-container-highest p-4">
 							<div class="text-outline text-[10px] tracking-[0.2em] uppercase">Locked</div>
 							<div class="font-headline text-on-surface mt-2 text-xl font-bold">
-								{resolvedState.lockedBalance}
+								{formatAmount(resolvedState.lockedBalance)}
 							</div>
 						</div>
 					</div>

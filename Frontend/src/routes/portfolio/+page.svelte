@@ -3,6 +3,7 @@
 
   import type { MarketResponse, PositionResponse } from '$lib/api-types';
   import Button from '$lib/components/Button.svelte';
+  import { formatAmount } from '$lib/number-display';
   import TopNavBar from '$lib/components/TopNavBar.svelte';
   import { ensureGuestSession } from '$lib/guest-session';
   import { loadPortfolioData } from '$lib/portfolio-data';
@@ -133,11 +134,11 @@
   <section class="col-span-12 grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
     <div class="bg-surface-container-low p-5 flex flex-col justify-between">
       <span class="text-[10px] uppercase tracking-[0.2em] text-outline">Available Balance</span>
-      <div class="text-3xl font-headline font-bold text-primary tracking-tighter mt-2">{portfolioState.availableBalance}</div>
+      <div class="text-3xl font-headline font-bold text-primary tracking-tighter mt-2">{formatAmount(portfolioState.availableBalance)}</div>
     </div>
     <div class="bg-surface-container-low p-5 flex flex-col justify-between">
       <span class="text-[10px] uppercase tracking-[0.2em] text-outline">Locked Balance</span>
-      <div class="text-3xl font-headline font-bold text-on-surface tracking-tighter mt-2">{portfolioState.lockedBalance}</div>
+      <div class="text-3xl font-headline font-bold text-on-surface tracking-tighter mt-2">{formatAmount(portfolioState.lockedBalance)}</div>
     </div>
     <div class="bg-surface-container-low p-5 flex flex-col justify-between">
       <span class="text-[10px] uppercase tracking-[0.2em] text-outline">Open Positions</span>
@@ -201,10 +202,10 @@
             <span class="{sideClass(position.side)} text-[10px] px-2 py-1 font-bold uppercase tracking-widest border">{position.side}</span>
           </div>
           <div class="col-span-2 text-right font-headline font-bold text-on-surface tracking-tight">
-            {position.stake_amount}
+            {formatAmount(position.stake_amount)}
           </div>
           <div class="col-span-2 text-right font-headline font-bold text-primary-fixed-dim">
-            {position.potential_payout}
+            {formatAmount(position.potential_payout)}
           </div>
           <div class="col-span-2 text-right">
             <div class="flex flex-col items-end gap-1">

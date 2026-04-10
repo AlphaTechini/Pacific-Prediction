@@ -138,7 +138,7 @@
 		>
 		{#if market.status === 'resolved'}
 			{resultValue()}{#if market.settlement_value}
-				at {market.settlement_value}{/if}
+				&nbsp;at {market.settlement_value}{/if}
 		{:else}
 			{detailValue()}
 		{/if}

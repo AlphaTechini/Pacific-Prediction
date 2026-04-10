@@ -9,6 +9,7 @@
 	} from '$lib/api-types';
 	import { loadCreateMarketContext, submitCreateMarket } from '$lib/create-market-data';
 	import { ensureGuestSession } from '$lib/guest-session';
+	import { formatAmount } from '$lib/number-display';
 	import TopNavBar from '$lib/components/TopNavBar.svelte';
 
 	type LoadStatus = 'loading' | 'ready' | 'error';
@@ -201,7 +202,11 @@
 	}
 
 	function thresholdDisplayScale(): number {
-		return Math.min(Math.max(decimalScale(selectedSymbol()?.tick_size), 0), 8);
+		const scale = Math.max(
+			decimalScale(selectedSymbol()?.min_tick),
+			decimalScale(selectedSymbol()?.mark_price)
+		);
+		return Math.min(Math.max(scale, 2), 8);
 	}
 
 	function formatThresholdNumber(value: number): string {
@@ -223,7 +228,7 @@
 
 		const symbol = selectedSymbol();
 		const referenceValue = parseDecimalNumber(symbol?.mark_price);
-		const tickSize = parseDecimalNumber(symbol?.tick_size);
+		const tickSize = parseDecimalNumber(symbol?.min_tick);
 		const bandPercent = parseDecimalNumber(createState.priceThresholdCreationBandPercent);
 		if (referenceValue === null || tickSize === null || bandPercent === null || tickSize <= 0) {
 			return null;
@@ -689,8 +694,10 @@
 								<input
 									bind:value={form.creatorStakeAmount}
 									class="bg-surface-container-lowest border-outline-variant/20 text-on-surface focus:ring-primary-container/30 w-full rounded-sm border px-4 py-3 text-sm outline-none focus:ring-1"
-									placeholder="500.00"
+									min="1"
+									placeholder="500"
 									required
+									step="1"
 									type="number"
 								/>
 							</label>
@@ -752,7 +759,7 @@
 								<div class="bg-surface-container-lowest border-error/40 border-l p-4">
 									<span class="text-outline mb-1 block text-[10px] uppercase">Stake</span>
 									<span class="font-headline text-on-surface text-sm font-bold"
-										>{form.creatorStakeAmount || '0.00'}</span
+										>{formatAmount(form.creatorStakeAmount || '0')}</span
 									>
 								</div>
 							</div>

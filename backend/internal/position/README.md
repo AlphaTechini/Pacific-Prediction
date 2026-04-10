@@ -9,6 +9,7 @@ I use this folder for direct participant position placement and player-facing po
 - I keep position contracts in their own package because position placement depends on market eligibility and balance locking, but it should not collapse those concerns into one module.
 - I keep direct participant placement here even though the market module now handles the creator's opening position during market creation.
 - I keep `potential_payout` on the position record because the architecture locks fixed-odds economics at entry time instead of recomputing old positions from newer payout rules.
+- Position stake validation should reject fractional stake amounts so spendable balances and payouts stay easy to manage as whole-number values.
 - Successful position placement should publish a backend-owned `market.updated` event after commit so subscribers can react to market activity without this package managing SSE details.
 - The tradeoff is another package boundary, but it keeps position lifecycle rules easier to change without destabilizing auth, market, or balance code.
 

@@ -304,7 +304,7 @@ func (s *service) validatorConfig() ValidationConfig {
 func normalizeCreateInput(input CreateInput, now time.Time) CreateInput {
 	input.Title = strings.TrimSpace(input.Title)
 	input.Symbol = strings.ToUpper(strings.TrimSpace(input.Symbol))
-	input.SymbolTickSize = strings.TrimSpace(input.SymbolTickSize)
+	input.SymbolPriceIncrement = strings.TrimSpace(input.SymbolPriceIncrement)
 	input.CreatorStakeAmount = strings.TrimSpace(input.CreatorStakeAmount)
 	input.ThresholdValue = strings.TrimSpace(input.ThresholdValue)
 	input.SourceInterval = strings.TrimSpace(input.SourceInterval)

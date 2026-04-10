@@ -4,6 +4,7 @@
   import type { MarketResponse, PositionResponse } from '$lib/api-types';
   import Button from '$lib/components/Button.svelte';
   import MarketCard from '$lib/components/MarketCard.svelte';
+  import { formatAmount } from '$lib/number-display';
   import TopNavBar from '$lib/components/TopNavBar.svelte';
   import { loadDashboardData } from '$lib/dashboard-data';
   import { ensureGuestSession, guestSession } from '$lib/guest-session';
@@ -135,7 +136,7 @@
           </div>
           <div class="bg-surface-container-low p-5 border border-outline-variant/15">
             <div class="text-[10px] uppercase tracking-[0.2em] text-outline">Available Balance</div>
-            <div class="mt-2 text-3xl font-headline font-bold text-on-surface">{dashboardState.availableBalance}</div>
+            <div class="mt-2 text-3xl font-headline font-bold text-on-surface">{formatAmount(dashboardState.availableBalance)}</div>
           </div>
         </div>
       </header>
@@ -182,11 +183,11 @@
           <div class="grid grid-cols-2 gap-4">
             <div class="bg-surface-container p-4">
               <div class="text-[10px] uppercase tracking-[0.2em] text-outline">Available</div>
-              <div class="mt-2 text-xl font-headline font-bold text-primary">{dashboardState.availableBalance}</div>
+              <div class="mt-2 text-xl font-headline font-bold text-primary">{formatAmount(dashboardState.availableBalance)}</div>
             </div>
             <div class="bg-surface-container p-4">
               <div class="text-[10px] uppercase tracking-[0.2em] text-outline">Locked</div>
-              <div class="mt-2 text-xl font-headline font-bold text-on-surface">{dashboardState.lockedBalance}</div>
+              <div class="mt-2 text-xl font-headline font-bold text-on-surface">{formatAmount(dashboardState.lockedBalance)}</div>
             </div>
           </div>
           <div class="flex flex-col gap-3 pt-2">
@@ -216,8 +217,8 @@
                   </span>
                 </div>
                 <div class="mt-4 flex justify-between text-[10px] uppercase tracking-[0.2em] text-outline">
-                  <span>Stake {position.stake_amount}</span>
-                  <span>Payout {position.potential_payout}</span>
+                  <span>Stake {formatAmount(position.stake_amount)}</span>
+                  <span>Payout {formatAmount(position.potential_payout)}</span>
                 </div>
               </a>
             {/each}

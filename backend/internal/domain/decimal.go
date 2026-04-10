@@ -33,6 +33,15 @@ func DecimalScale(value string) int {
 	return len(strings.TrimRight(parts[1], "0"))
 }
 
+func IsWholeNumber(value string) bool {
+	parsed, err := ParseDecimal(value)
+	if err != nil {
+		return false
+	}
+
+	return parsed.IsInt()
+}
+
 func FormatFixedScaleDecimal(value *big.Rat, scale int) string {
 	if value == nil {
 		return ""

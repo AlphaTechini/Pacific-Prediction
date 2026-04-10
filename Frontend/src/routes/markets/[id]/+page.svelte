@@ -5,6 +5,7 @@
 
 	import type { MarketResponse, PositionResponse } from '$lib/api-types';
 	import Button from '$lib/components/Button.svelte';
+	import { formatAmount } from '$lib/number-display';
 	import TopNavBar from '$lib/components/TopNavBar.svelte';
 	import { ensureGuestSession } from '$lib/guest-session';
 	import {
@@ -430,11 +431,11 @@
 									<div class="mt-4 grid grid-cols-2 gap-4 text-xs">
 										<div>
 											<div class="text-outline tracking-[0.2em] uppercase">Stake</div>
-											<div class="text-on-surface mt-1 font-mono">{position.stake_amount}</div>
+											<div class="text-on-surface mt-1 font-mono">{formatAmount(position.stake_amount)}</div>
 										</div>
 										<div>
 											<div class="text-outline tracking-[0.2em] uppercase">Potential Payout</div>
-											<div class="text-on-surface mt-1 font-mono">{position.potential_payout}</div>
+											<div class="text-on-surface mt-1 font-mono">{formatAmount(position.potential_payout)}</div>
 										</div>
 									</div>
 								</div>
@@ -503,16 +504,17 @@
 										>Stake Amount</span
 									>
 									<span class="text-outline font-mono text-[10px] uppercase"
-										>Available: {detailState.availableBalance}</span
+										>Available: {formatAmount(detailState.availableBalance)}</span
 									>
 								</div>
 								<div class="group relative">
 									<input
 										bind:value={stakeAmount}
 										class="bg-surface-container-lowest border-outline-variant/20 focus:ring-primary-container/30 placeholder:text-outline-variant w-full rounded-sm border p-4 pr-16 font-mono text-xl focus:ring-1 focus:outline-none"
-										placeholder="0.00"
+										min="1"
+										placeholder="100"
 										required
-										step="0.00000001"
+										step="1"
 										type="number"
 									/>
 									<span
@@ -533,7 +535,7 @@
 								</div>
 								<div class="flex items-center justify-between text-xs">
 									<span class="text-outline">Locked Balance</span>
-									<span class="text-on-surface font-mono">{detailState.lockedBalance}</span>
+									<span class="text-on-surface font-mono">{formatAmount(detailState.lockedBalance)}</span>
 								</div>
 							</div>
 

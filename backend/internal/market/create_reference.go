@@ -44,7 +44,7 @@ func (s *service) enrichCreateInput(ctx context.Context, input CreateInput) (Cre
 		return CreateInput{}, domain.NewValidationError("symbol", "live mark price is not available for this symbol", input.Symbol)
 	}
 
-	input.SymbolTickSize = strings.TrimSpace(marketInfo.TickSize)
+	input.SymbolPriceIncrement = strings.TrimSpace(marketInfo.MinTick)
 	input.ReferenceValue = strings.TrimSpace(priceSnapshot.MarkPrice)
 
 	return input, nil

@@ -59,8 +59,8 @@ func (s *validationService) ValidateCreateInput(ctx context.Context, input Creat
 	if creatorStake.Sign() <= 0 {
 		return domain.NewValidationError("creator_stake_amount", "creator stake amount must be greater than zero", input.CreatorStakeAmount)
 	}
-	if !domain.FitsNumericScale(input.CreatorStakeAmount, 8) {
-		return domain.NewValidationError("creator_stake_amount", "creator stake amount must use no more than 8 decimal places", input.CreatorStakeAmount)
+	if !domain.IsWholeNumber(input.CreatorStakeAmount) {
+		return domain.NewValidationError("creator_stake_amount", "creator stake amount must be a whole number", input.CreatorStakeAmount)
 	}
 
 	model, ok := findValidationModel(input.MarketType)
@@ -225,8 +225,8 @@ func requireDecimal(field, value string) error {
 
 func validateThresholdScaleForSymbol(input CreateInput) error {
 	maxScale := 8
-	if strings.TrimSpace(input.SymbolTickSize) != "" {
-		tickScale := domain.DecimalScale(input.SymbolTickSize)
+	if strings.TrimSpace(input.SymbolPriceIncrement) != "" {
+		tickScale := domain.DecimalScale(input.SymbolPriceIncrement)
 		if tickScale < maxScale {
 			maxScale = tickScale
 		}
@@ -262,13 +262,13 @@ func validatePriceThresholdRange(input CreateInput, config ValidationConfig) err
 		return domain.NewValidationError("reference_value", "reference value must be greater than zero", input.ReferenceValue)
 	}
 
-	tickSize, err := domain.ParseDecimal(input.SymbolTickSize)
+	tickSize, err := domain.ParseDecimal(input.SymbolPriceIncrement)
 	if err != nil {
-		return domain.NewValidationError("symbol", "symbol tick size must be a valid decimal string", input.SymbolTickSize)
+		return domain.NewValidationError("symbol", "symbol price increment must be a valid decimal string", input.SymbolPriceIncrement)
 	}
 
 	if tickSize.Sign() <= 0 {
-		return domain.NewValidationError("symbol", "symbol tick size must be greater than zero", input.SymbolTickSize)
+		return domain.NewValidationError("symbol", "symbol price increment must be greater than zero", input.SymbolPriceIncrement)
 	}
 
 	bandPercent, err := domain.ParseDecimal(config.PriceThresholdCreationBandPercent)
@@ -277,7 +277,7 @@ func validatePriceThresholdRange(input CreateInput, config ValidationConfig) err
 	}
 
 	lowerBound, upperBound := calculatePriceThresholdBounds(referenceValue, bandPercent)
-	displayScale := thresholdDisplayScale(input.SymbolTickSize)
+	displayScale := thresholdDisplayScale(input.SymbolPriceIncrement, input.ReferenceValue)
 	referenceDisplay := domain.FormatFixedScaleDecimal(referenceValue, displayScale)
 
 	distance := new(big.Rat).Sub(new(big.Rat).Set(threshold), referenceValue)
@@ -352,10 +352,13 @@ func calculatePriceThresholdBounds(referenceValue, bandPercent *big.Rat) (*big.R
 	return lowerBound, upperBound
 }
 
-func thresholdDisplayScale(tickSize string) int {
-	scale := domain.DecimalScale(tickSize)
+func thresholdDisplayScale(priceIncrement string, referenceValue string) int {
+	scale := domain.DecimalScale(priceIncrement)
 	if scale <= 0 {
-		return 0
+		scale = domain.DecimalScale(referenceValue)
+	}
+	if scale <= 0 {
+		return 2
 	}
 	if scale > 8 {
 		return 8

@@ -35,8 +35,8 @@ func (s *validationService) ValidateCreateInput(ctx context.Context, playerID do
 	if stake.Sign() <= 0 {
 		return domain.NewValidationError("stake_amount", "stake amount must be greater than zero", input.StakeAmount)
 	}
-	if !domain.FitsNumericScale(strings.TrimSpace(input.StakeAmount), 8) {
-		return domain.NewValidationError("stake_amount", "stake amount must use no more than 8 decimal places", input.StakeAmount)
+	if !domain.IsWholeNumber(strings.TrimSpace(input.StakeAmount)) {
+		return domain.NewValidationError("stake_amount", "stake amount must be a whole number", input.StakeAmount)
 	}
 
 	selectedMarket, err := s.marketController.GetByID(ctx, input.MarketID)

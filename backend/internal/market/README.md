@@ -15,6 +15,7 @@ I use this folder for market creation rules, market state transitions, and predi
 - Candle-direction markets should support the Pacifica mark-price candle intervals I expose in validation and still require expiry times that land exactly on the chosen candle close boundary so settlement resolves one unambiguous candle.
 - Funding-threshold markets should anchor to the next hourly funding epoch after submission so they do not become due immediately and settlement always targets the next real checkpoint.
 - Price-threshold markets should capture the live mark price at creation, store it as `reference_value`, and keep user thresholds inside a config-backed band on the correct side of that reference so trivial free-win markets are rejected.
+- Creator opening stake validation should reject fractional stake amounts so market-funded balances stay whole-number based.
 - Market creation context should come from Pacifica-backed symbol and price inputs so the UI can guide valid source choices before the user submits a market.
 - Market listing should expose active and resolved catalogs without forcing the frontend to piece together multiple transport calls for the default dashboard view.
 - Market detail should be readable through a single route-backed lookup so the frontend can hydrate a dedicated market page without reusing the list payload as a surrogate detail source.
