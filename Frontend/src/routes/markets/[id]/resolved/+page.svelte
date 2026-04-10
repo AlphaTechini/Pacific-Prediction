@@ -5,6 +5,7 @@
 
 	import type { MarketResponse, PositionResponse } from '$lib/api-types';
 	import Button from '$lib/components/Button.svelte';
+	import { formatMarketTitleDisplay } from '$lib/market-title';
 	import { formatAmount } from '$lib/number-display';
 	import TopNavBar from '$lib/components/TopNavBar.svelte';
 	import { ensureGuestSession } from '$lib/guest-session';
@@ -226,7 +227,7 @@
 							<h1
 								class="font-headline text-primary text-3xl leading-none font-bold tracking-tight md:text-4xl"
 							>
-								{resolvedState.market.title}
+								{formatMarketTitleDisplay(resolvedState.market.title)}
 							</h1>
 							<p class="text-outline font-mono text-sm">{resolvedState.market.symbol}</p>
 						</div>
@@ -443,7 +444,7 @@
 									<p
 										class="text-on-surface group-hover:text-primary mb-1 text-xs font-bold transition-colors"
 									>
-										{relatedMarket.title}
+										{formatMarketTitleDisplay(relatedMarket.title)}
 									</p>
 									<div class="flex items-center justify-between gap-4">
 										<span class="text-outline font-mono text-[10px] uppercase"

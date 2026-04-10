@@ -80,12 +80,20 @@
 - The HTTP wiring pattern uses an `httpapi.Application` container for shared dependencies and controller references, plus an `httpapi.Router` helper that main.go uses to register method-aware routes explicitly.
 - Guest sessions use opaque random tokens stored only in secure cookies, while PostgreSQL stores the token hash and the initial virtual balance is provisioned during guest creation from environment-backed config.
 - Market validation should use Pacifica `/api/v1/info` metadata through the pacifica module, with backend-owned caching instead of a hardcoded symbol list.
-- Price-threshold market creation should capture the live Pacifica mark price as `reference_value` and only allow thresholds within a config-backed band around that reference, with operator direction deciding the valid side of the band.
+- Price-threshold market creation should capture the live Pacifica mark price as `reference_value`, use Pacifica `tick_size` as the primary precision source, and only fall back to a positive `min_tick` when `tick_size` is missing or unusable.
+- Price-threshold market creation should only allow thresholds within a config-backed band around that reference, with operator direction deciding the valid side of the band.
 - Stake amounts should be whole numbers only so balances, locked funds, and payouts stay easy to reason about in the product UI and backend validation.
 - Realtime delivery should use backend-owned typed stream events with explicit `market.created`, `market.updated`, and `market.settled` event types instead of exposing raw Pacifica live payloads to the frontend.
 - The first realtime transport should be a public SSE endpoint with environment-backed heartbeat timing so the stream boundary is ready before the in-process hub is added.
 - Realtime fan-out should use one in-process bounded hub with a publisher contract, and slow subscribers should be dropped instead of blocking backend publishers.
 - Market creation, position placement, and settlement completion should publish realtime events only after their durable writes succeed, using a post-commit context so client disconnects do not suppress committed events.
+
+## Skill Packaging Decisions
+
+- Public OpenClaw skill packaging lives under `skills/`.
+- The first public ClawHub skill slug is `pacifica-pulse-v1`.
+- The first public publish version starts at `0.1.0`.
+- The first skill release stays self-contained in one `SKILL.md` file with no extra installer requirements.
 
 ## Settlement Contract Decisions
 

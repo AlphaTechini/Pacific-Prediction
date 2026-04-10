@@ -9,6 +9,7 @@
 	} from '$lib/api-types';
 	import { loadCreateMarketContext, submitCreateMarket } from '$lib/create-market-data';
 	import { ensureGuestSession } from '$lib/guest-session';
+	import { formatMarketQuestionTiming } from '$lib/market-title';
 	import { formatAmount } from '$lib/number-display';
 	import TopNavBar from '$lib/components/TopNavBar.svelte';
 
@@ -16,7 +17,6 @@
 	type SubmitStatus = 'idle' | 'submitting' | 'error';
 
 	interface FormState {
-		title: string;
 		symbol: string;
 		marketType: string;
 		conditionOperator: string;
@@ -38,7 +38,6 @@
 	});
 
 	const form = $state<FormState>({
-		title: '',
 		symbol: '',
 		marketType: '',
 		conditionOperator: '',
@@ -179,6 +178,21 @@
 		return value && value.trim() !== '' ? formatAmount(value) : 'Not available';
 	}
 
+	function symbolPriceIncrement(): string {
+		const symbol = selectedSymbol();
+		const tickSize = normalizeText(symbol?.tick_size);
+		if (parseDecimalNumber(tickSize) && parseDecimalNumber(tickSize)! > 0) {
+			return tickSize;
+		}
+
+		const minTick = normalizeText(symbol?.min_tick);
+		if (parseDecimalNumber(minTick) && parseDecimalNumber(minTick)! > 0) {
+			return minTick;
+		}
+
+		return '';
+	}
+
 	function decimalScale(value?: string): number {
 		if (!value) {
 			return 0;
@@ -202,10 +216,7 @@
 	}
 
 	function thresholdDisplayScale(): number {
-		const scale = Math.max(
-			decimalScale(selectedSymbol()?.min_tick),
-			decimalScale(selectedSymbol()?.mark_price)
-		);
+		const scale = Math.max(decimalScale(symbolPriceIncrement()), decimalScale(selectedSymbol()?.mark_price));
 		return Math.min(Math.max(scale, 2), 8);
 	}
 
@@ -228,7 +239,7 @@
 
 		const symbol = selectedSymbol();
 		const referenceValue = parseDecimalNumber(symbol?.mark_price);
-		const tickSize = parseDecimalNumber(symbol?.min_tick);
+		const tickSize = parseDecimalNumber(symbolPriceIncrement());
 		const bandPercent = parseDecimalNumber(createState.priceThresholdCreationBandPercent);
 		if (referenceValue === null || tickSize === null || bandPercent === null || tickSize <= 0) {
 			return null;
@@ -302,6 +313,44 @@
 		return `This market uses ${operatorLabel(form.conditionOperator).toLowerCase()} as the settlement rule.`;
 	}
 
+	function generatedMarketQuestion(): string {
+		const symbol = form.symbol || 'This market';
+		const thresholdValue = normalizeText(form.thresholdValue);
+		const timing = timingSummary();
+
+		if (form.marketType === 'price_threshold') {
+			const operator = operatorLabel(form.conditionOperator).toLowerCase();
+			if (thresholdValue !== '') {
+				return `Will ${symbol} mark price be ${operator} ${thresholdValue} by ${timing}?`;
+			}
+
+			return `Will ${symbol} mark price trigger the selected threshold by ${timing}?`;
+		}
+
+		if (form.marketType === 'candle_direction') {
+			const direction =
+				form.conditionOperator === 'bullish_close' ? 'bullish' : 'bearish';
+			return `Will ${symbol} close ${direction} on the next ${form.sourceInterval || 'selected'} candle?`;
+		}
+
+		if (form.marketType === 'funding_threshold') {
+			if (form.conditionOperator === 'positive') {
+				return `Will ${symbol} funding rate be positive at the next funding checkpoint?`;
+			}
+
+			if (form.conditionOperator === 'negative') {
+				return `Will ${symbol} funding rate be negative at the next funding checkpoint?`;
+			}
+
+			if (thresholdValue !== '') {
+				const operator = operatorLabel(form.conditionOperator).toLowerCase();
+				return `Will ${symbol} funding rate be ${operator} ${thresholdValue} at the next funding checkpoint?`;
+			}
+		}
+
+		return 'Your market question will appear here once the rule is complete.';
+	}
+
 	function timingSummary(): string {
 		const model = selectedModel();
 		if (!model) {
@@ -316,7 +365,7 @@
 			return `Auto-set to the next funding checkpoint after submission (${nextFundingCheckpointPreview()}).`;
 		}
 
-		return form.expiryTime || 'Pick an expiry';
+		return form.expiryTime ? formatMarketQuestionTiming(form.expiryTime) : 'Pick an expiry';
 	}
 
 	function nextFundingCheckpointPreview(): string {
@@ -361,7 +410,7 @@
 
 		try {
 			const createdMarket = await submitCreateMarket({
-				title: normalizeText(form.title),
+				title: generatedMarketQuestion(),
 				symbol: form.symbol,
 				market_type: form.marketType,
 				condition_operator: form.conditionOperator,
@@ -459,13 +508,16 @@
 						<label class="block">
 							<span class="sr-only">Market question</span>
 							<textarea
-								bind:value={form.title}
 								class="bg-surface-container-lowest border-outline-variant/20 font-headline text-on-surface placeholder:text-outline-variant/30 focus:ring-primary-container/30 w-full resize-none rounded-sm border p-4 text-xl focus:ring-1"
-								placeholder="Will BTC funding rate turn negative before the next funding checkpoint?"
+								readonly
 								rows="3"
-								required
+								value={generatedMarketQuestion()}
 							></textarea>
 						</label>
+						<p class="text-outline mt-3 text-xs leading-relaxed">
+							I generate the market question from the selected symbol, rule, and timing so the saved
+							market wording always matches the actual settlement logic.
+						</p>
 					</section>
 
 					<section class="bg-surface-container-low rounded-sm p-6">
@@ -746,7 +798,7 @@
 							</div>
 
 							<h3 class="font-headline text-primary mb-6 text-xl leading-tight font-bold">
-								{form.title || 'Your market question will appear here.'}
+								{generatedMarketQuestion()}
 							</h3>
 
 							<div class="mb-6 grid grid-cols-2 gap-4">

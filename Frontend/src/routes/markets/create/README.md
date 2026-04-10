@@ -8,6 +8,8 @@ I use this folder for the create-market page.
 
 - I keep market creation as one guided flow that includes creator side and creator stake.
 - The page still initializes after mount because it first ensures a guest session and then loads backend context.
+- I generate the visible market question from the selected symbol, rule, and timing so the saved title stays aligned with settlement logic instead of relying on freeform copy.
+- I mirror the backend precision rules in the UI by preferring Pacifica `tick_size` for price-threshold guidance and only falling back to a positive `min_tick` when needed.
 
 ## Logic Tracking
 

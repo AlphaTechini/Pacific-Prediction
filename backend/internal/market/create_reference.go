@@ -44,10 +44,34 @@ func (s *service) enrichCreateInput(ctx context.Context, input CreateInput) (Cre
 		return CreateInput{}, domain.NewValidationError("symbol", "live mark price is not available for this symbol", input.Symbol)
 	}
 
-	input.SymbolPriceIncrement = strings.TrimSpace(marketInfo.MinTick)
+	input.SymbolPriceIncrement = selectSymbolPriceIncrement(marketInfo)
 	input.ReferenceValue = strings.TrimSpace(priceSnapshot.MarkPrice)
 
 	return input, nil
+}
+
+func selectSymbolPriceIncrement(item pacifica.MarketInfo) string {
+	candidates := []string{
+		strings.TrimSpace(item.TickSize),
+		strings.TrimSpace(item.MinTick),
+	}
+
+	for _, candidate := range candidates {
+		if candidate == "" {
+			continue
+		}
+
+		value, err := domain.ParseDecimal(candidate)
+		if err != nil {
+			continue
+		}
+
+		if value.Sign() > 0 {
+			return candidate
+		}
+	}
+
+	return ""
 }
 
 func findMarketInfoBySymbol(items []pacifica.MarketInfo, symbol string) (pacifica.MarketInfo, bool) {

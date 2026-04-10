@@ -9,6 +9,7 @@
 - [Research.md](./Research.md)
 - [frontend-notes.md](./frontend-notes.md)
 - [frontend-integration.md](./frontend-integration.md)
+- [skills/README.md](./skills/README.md)
 
 ## Overview
 
@@ -96,3 +97,4 @@ This keeps the product easy to explain and easy to verify.
 - To find frontend implementation notes visit [frontend-notes.md](./frontend-notes.md) and [frontend-integration.md](./frontend-integration.md).
 - To find backend package ownership visit [backend/README.md](./backend/README.md).
 - To find frontend package ownership visit [Frontend/README.md](./Frontend/README.md).
+- To find OpenClaw skill packaging visit [skills/README.md](./skills/README.md).
