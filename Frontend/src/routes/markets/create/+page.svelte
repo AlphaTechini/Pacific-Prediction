@@ -176,7 +176,7 @@
 	}
 
 	function formatNumber(value?: string): string {
-		return value && value.trim() !== '' ? value : 'Not available';
+		return value && value.trim() !== '' ? formatAmount(value) : 'Not available';
 	}
 
 	function decimalScale(value?: string): number {
