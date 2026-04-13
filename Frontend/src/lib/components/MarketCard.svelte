@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import StatusBadge from './StatusBadge.svelte';
 	import type { MarketResponse } from '$lib/api-types';
 	import { formatMarketTitleDisplay } from '$lib/market-title';
@@ -50,12 +51,6 @@
 		return getBadgeVariant(market.status);
 	}
 
-	function marketHref(): string {
-		return market.status === 'resolved'
-			? `/markets/${market.id}/resolved`
-			: `/markets/${market.id}`;
-	}
-
 	function detailValue(): string {
 		return market.threshold_value || market.reference_value || 'Rule-based';
 	}
@@ -89,7 +84,7 @@
 
 <a
 	class="bg-surface-container-low border-outline-variant group hover:bg-surface-container relative block border-t-2 p-5 transition-colors"
-	href={marketHref()}
+	href={resolve(market.status === 'resolved' ? `/markets/${market.id}/resolved` : `/markets/${market.id}`)}
 >
 	<div class="mb-4 flex items-start justify-between">
 		<div class="flex items-center gap-3">
@@ -98,7 +93,7 @@
 			>
 				<span class="material-symbols-outlined text-primary-container text-lg">query_stats</span>
 			</div>
-			<h3 class="font-headline max-w-[140px] text-sm leading-tight font-bold tracking-tight">
+			<h3 class="font-headline max-w-35 text-sm leading-tight font-bold tracking-tight">
 				{formatMarketTitleDisplay(market.title)}<br />
 				<span class="text-outline text-[10px] font-normal tracking-wider uppercase"
 					>{market.symbol}</span

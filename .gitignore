@@ -5,4 +5,5 @@ Frontend/.env
 Frontend/.env.*
 !Frontend/.env.example
 task.md
+.tmp-*
 

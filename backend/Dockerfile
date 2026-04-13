@@ -16,6 +16,6 @@ WORKDIR /app
 COPY --from=build /bin/prediction-api /app/prediction-api
 COPY --from=build /app/migrations /app/migrations
 
-EXPOSE 8080
+EXPOSE 3006
 
 ENTRYPOINT ["/app/prediction-api"]

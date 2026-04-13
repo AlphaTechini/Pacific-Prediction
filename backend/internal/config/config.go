@@ -113,7 +113,7 @@ func Load() (Config, error) {
 
 	cfg := Config{
 		AppEnv:        getEnv("APP_ENV", "development"),
-		AppAddr:       getEnv("APP_ADDR", ":8080"),
+		AppAddr:       resolveAppAddr(),
 		Database:      databaseConfig,
 		MigrationsDir: resolveMigrationsDir(getEnv("MIGRATIONS_DIR", defaultMigrationsDir()), dotEnvMeta),
 		Auth:          authConfig,
@@ -222,6 +222,20 @@ func getEnv(key, fallback string) string {
 	}
 
 	return fallback
+}
+
+func resolveAppAddr() string {
+	appAddr := strings.TrimSpace(os.Getenv("APP_ADDR"))
+	if appAddr != "" {
+		return appAddr
+	}
+
+	port := strings.TrimSpace(os.Getenv("PORT"))
+	if port != "" {
+		return "0.0.0.0:" + port
+	}
+
+	return ":3006"
 }
 
 func defaultMigrationsDir() string {
