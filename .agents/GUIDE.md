@@ -30,6 +30,7 @@
 - The frontend should talk only to our backend, not directly to Pacifica.
 - The frontend should use the SvelteKit backend proxy for browser API calls instead of reaching the Go service directly from page code.
 - Player identity in v1 uses guest accounts with backend-issued sessions.
+- The frontend caches the guest player id and display name in localStorage so revisiting the app does not automatically provision another guest player.
 - Balances must be server-authoritative.
 - Market creators must choose a side and stake when creating a market, and that initial creator participation should be handled by the backend as part of one flow.
 - The frontend should prefer one backend route for "create market with creator auto-stake" instead of coordinating separate market-create and position-create requests.
@@ -79,6 +80,7 @@
 - Storage repository contracts are split by module concern and should be consumed through a transaction-scoped repository provider instead of ad hoc SQL access.
 - The HTTP wiring pattern uses an `httpapi.Application` container for shared dependencies and controller references, plus an `httpapi.Router` helper that main.go uses to register method-aware routes explicitly.
 - Guest sessions use opaque random tokens stored only in secure cookies, while PostgreSQL stores the token hash and the initial virtual balance is provisioned during guest creation from environment-backed config.
+- The localStorage guest cache is only a frontend continuity hint; backend authorization still depends on the secure session cookie.
 - Market validation should use Pacifica `/api/v1/info` metadata through the pacifica module, with backend-owned caching instead of a hardcoded symbol list.
 - Price-threshold market creation should capture the live Pacifica mark price as `reference_value`, use Pacifica `tick_size` as the primary precision source, and only fall back to a positive `min_tick` when `tick_size` is missing or unusable.
 - Price-threshold market creation should only allow thresholds within a config-backed band around that reference, with operator direction deciding the valid side of the band.

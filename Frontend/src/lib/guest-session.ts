@@ -1,3 +1,4 @@
+import { browser } from '$app/environment';
 import { get, writable } from 'svelte/store';
 
 import { fetchBackend } from '$lib/backend-api';
@@ -27,9 +28,12 @@ interface MeResponse {
 	display_name: string;
 }
 
+const guestPlayerStorageKey = 'pacific_prediction_guest_player';
+const storedInitialPlayer = loadStoredGuestPlayer();
+
 const initialState: GuestSessionState = {
-	status: 'idle',
-	player: null,
+	status: storedInitialPlayer ? 'ready' : 'idle',
+	player: storedInitialPlayer,
 	error: null
 };
 
@@ -81,9 +85,15 @@ export async function ensureGuestSession(): Promise<SessionPlayer | null> {
 }
 
 async function resolveGuestSession(): Promise<SessionPlayer> {
+	const storedPlayer = loadStoredGuestPlayer();
+	if (storedPlayer) {
+		return storedPlayer;
+	}
+
 	const currentPlayer = await fetchCurrentPlayer();
 
 	if (currentPlayer) {
+		storeGuestPlayer(currentPlayer);
 		return currentPlayer;
 	}
 
@@ -124,11 +134,62 @@ async function createGuestSession(): Promise<SessionPlayer> {
 
 	const payload = (await response.json()) as GuestSessionResponse;
 
-	return {
+	const player = {
 		id: payload.player_id,
 		displayName: payload.display_name,
 		expiresAt: payload.expires_at
 	};
+
+	storeGuestPlayer(player);
+
+	return player;
+}
+
+function loadStoredGuestPlayer(): SessionPlayer | null {
+	if (!browser) {
+		return null;
+	}
+
+	const rawPlayer = localStorage.getItem(guestPlayerStorageKey);
+	if (!rawPlayer) {
+		return null;
+	}
+
+	try {
+		const parsed = JSON.parse(rawPlayer) as Partial<SessionPlayer>;
+		if (typeof parsed.id !== 'string' || typeof parsed.displayName !== 'string') {
+			localStorage.removeItem(guestPlayerStorageKey);
+			return null;
+		}
+
+		return {
+			id: parsed.id,
+			displayName: parsed.displayName,
+			expiresAt: typeof parsed.expiresAt === 'string' ? parsed.expiresAt : undefined
+		};
+	} catch {
+		localStorage.removeItem(guestPlayerStorageKey);
+		return null;
+	}
+}
+
+function storeGuestPlayer(player: SessionPlayer): void {
+	if (!browser) {
+		return;
+	}
+
+	try {
+		localStorage.setItem(
+			guestPlayerStorageKey,
+			JSON.stringify({
+				id: player.id,
+				displayName: player.displayName,
+				expiresAt: player.expiresAt
+			})
+		);
+	} catch {
+		return;
+	}
 }
 
 function toErrorMessage(error: unknown): string {

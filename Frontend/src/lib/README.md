@@ -9,6 +9,7 @@ I use this folder for shared frontend data helpers, API types, reusable componen
 - I keep API-shaping helpers here so route files stay focused on page behavior.
 - I keep shared UI components here so the app shell stays visually consistent.
 - I keep the backend proxy utilities isolated under `server` because they are not browser-only code.
+- I let `guest-session.ts` cache the guest player id and display name in browser localStorage so returning to the app does not silently create another guest identity.
 
 ## Logic Tracking
 
