@@ -11,7 +11,6 @@ I use this folder for frontend-owned visual assets and reference imagery.
 
 ## Logic Tracking
 
-- To find the frontend favicon visit [favicon.svg](file:///C:/Hackathons/Pacific%20Prediction/Frontend/src/lib/assets/favicon.svg).
 - To find app and reference imagery visit [mockups/README.md](file:///C:/Hackathons/Pacific%20Prediction/Frontend/src/lib/assets/mockups/README.md).
 
 ## Component And Connection Map
