@@ -15,9 +15,13 @@
 
 <nav class="fixed top-0 z-50 w-full border-b border-[#3b494b]/15 bg-[#111417]/90 backdrop-blur-md">
 	<div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-		<div class="font-headline text-xl font-bold tracking-tighter text-[#dbfcff]">
-			Pacifica Pulse
-		</div>
+		<a
+			href="/"
+			aria-label="Pacifica Pulse home"
+			class="block h-10 w-24 overflow-hidden rounded-sm border border-[#00F0FF]/15 bg-[#111417]"
+		>
+			<img src="/favicon.png" alt="" class="h-full w-full object-cover" />
+		</a>
 		<div class="hidden items-center space-x-8 md:flex">
 			{#each navLinks as link}
 				<a
