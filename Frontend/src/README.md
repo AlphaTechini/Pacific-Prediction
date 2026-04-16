@@ -8,6 +8,7 @@ I use this folder for the actual frontend application code.
 
 - I split shared UI/data code under `lib` and page ownership under `routes`.
 - I keep backend transport details out of route components where possible.
+- I wire the document-level favicon in `app.html`, while the actual PNG lives under `Frontend/static`.
 - The tradeoff is more folders, but ownership stays much clearer as the app grows.
 
 ## Logic Tracking

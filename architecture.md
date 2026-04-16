@@ -119,6 +119,7 @@ The frontend is responsible for:
 
 - presenting real market state
 - creating or reusing guest sessions before protected actions
+- caching the guest player id and display name in localStorage so a revisit does not silently provision another guest identity
 - collecting market creation and position-placement input
 - rendering balance, position, and market detail reads
 - rendering the leaderboard snapshot returned by the backend
@@ -151,6 +152,8 @@ That gives me:
 - cookie continuity
 - less frontend environment branching
 - a cleaner place to centralize backend URL configuration
+
+The localStorage guest cache is intentionally only a continuity hint for the frontend UI. The backend still authorizes protected calls through the secure session cookie and the hashed session-token lookup in PostgreSQL.
 
 ---
 

@@ -9,6 +9,7 @@ I want this document to describe the current frontend integration state, not jus
 The frontend is now meaningfully connected to the backend:
 
 - guest session flow exists
+- guest player id and display name are cached in localStorage to avoid silent duplicate guest provisioning on revisit
 - dashboard reads real markets, balances, and positions
 - create-market reads backend context and submits the creator's opening position in one request
 - market detail reads a real market and can place a real position
@@ -20,6 +21,7 @@ The frontend is now meaningfully connected to the backend:
 
 - The frontend does not call Pacifica directly.
 - The backend owns settlement, balances, and ranking logic.
+- The localStorage guest cache is only a frontend continuity layer; protected backend calls still depend on the secure cookie session.
 - The leaderboard is efficient because the page renders from one snapshot response.
 - The create-market flow stays clean because the creator-side logic is backend-owned.
 

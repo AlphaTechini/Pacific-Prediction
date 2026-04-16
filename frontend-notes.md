@@ -6,6 +6,7 @@
 - If a feature is not supported in the current backend, I should not make it feel half-live.
 - The frontend should talk to our backend only, not directly to Pacifica.
 - Guest session is still the main player flow for this version.
+- The guest player id and display name are cached in localStorage for continuity, but the backend still trusts only the secure session cookie.
 
 ## What Is Real Today
 
@@ -14,6 +15,7 @@
 - Market detail and resolved pages are backed by real market reads.
 - The portfolio uses real player balance and positions.
 - The leaderboard is now a real backend-backed page, not a placeholder.
+- The top navigation now uses the static PNG brand icon instead of the old text-only brand.
 
 ## What Is Still Drift, Not Product Truth
 
@@ -34,6 +36,7 @@
 - The create-market page should keep using one backend create route for the full creator action.
 - The dashboard should stay focused on real markets and real player state.
 - The leaderboard should stay a read-only performance surface until deeper profile features exist.
+- The static favicon at `Frontend/static/favicon.png` should remain the browser favicon and nav brand mark unless a dedicated logo asset is introduced.
 
 ## Practical Notes
 

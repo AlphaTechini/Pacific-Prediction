@@ -10,6 +10,7 @@ I use this folder for HTTP routing, request validation, response shaping, and tr
 - I shape responses here because the frontend should consume product-shaped payloads, not raw Pacifica responses.
 - I keep route ownership in `main.go`, but I use a shared `Application` container and `Router` helper here so dependency wiring and HTTP method checks stay consistent across modules.
 - I let auth middleware resolve the session cookie into request context here so domain packages do not depend on HTTP cookie parsing.
+- I keep guest-session HTTP concerns in `auth_handlers.go`; this is where the backend sets the session cookie after `POST /api/v1/players/guest`.
 - The leaderboard route should stay public and cache-friendly because it is a read-mostly ranking surface.
 - Market creation uses the same thin-handler pattern, with request parsing and RFC3339 coercion in HTTP and domain validation/persistence in the market module.
 - Market creation should stay product-shaped in HTTP, which now means the route accepts creator side and stake so the frontend can submit one request instead of coordinating a second opening-position call.
@@ -21,6 +22,7 @@ I use this folder for HTTP routing, request validation, response shaping, and tr
 ## Logic Tracking
 
 - To find HTTP transport logic visit [README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/httpapi/README.md).
+- To find guest-session handlers and session middleware visit [auth_handlers.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/httpapi/auth_handlers.go).
 - To find SSE stream handler logic visit [realtime_handlers.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/httpapi/realtime_handlers.go).
 - To find leaderboard handler logic visit [leaderboard_handlers.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/httpapi/leaderboard_handlers.go).
 - To find market domain logic visit [../market/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/market/README.md).
@@ -32,6 +34,7 @@ I use this folder for HTTP routing, request validation, response shaping, and tr
 ## Component And Connection Map
 
 - The client-facing API transport can be found in [README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/httpapi/README.md).
+- The guest-session HTTP transport can be found in [auth_handlers.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/httpapi/auth_handlers.go).
 - The realtime client stream connection can be found in [../realtime/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/realtime/README.md).
 - The SSE transport handler can be found in [realtime_handlers.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/httpapi/realtime_handlers.go).
 - The public leaderboard transport can be found in [leaderboard_handlers.go](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/httpapi/leaderboard_handlers.go).

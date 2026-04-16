@@ -1,101 +1,45 @@
-# Frontend Renovate Report
+﻿# Frontend Renovate Report
 
 ## Purpose
 
-I wrote this report to point out frontend pieces that look polished but are not helping the current product yet.
+I use this report to keep the frontend cleanup list honest against the current implementation.
 
-I am not changing wording or layout here. I am only listing what feels unnecessary, fake, unsupported, or not connected to real behavior.
+The product pages are now mostly connected to backend truth, so this document no longer treats the whole frontend as a static concept build. It tracks the remaining polish and product-alignment work after the live data pass.
 
-## General Rule
+## Current Product Reality
 
-If a section does not do anything, does not show real data, or suggests a feature that v1 does not support, I should remove it or defer it instead of dressing it up.
+- The dashboard reads real markets, balance, and positions.
+- The create-market page submits one backend-owned creator flow with side and stake.
+- Market detail and resolved-market pages read backend market state by id.
+- The portfolio reads real player balance and positions.
+- The leaderboard is backed by a backend snapshot route.
+- The top navigation uses the static PNG brand icon from `Frontend/static/favicon.png`.
+- Guest continuity now uses a localStorage cache for player id and display name, while protected backend calls still depend on the secure session cookie.
 
-## Landing Page
+## Remaining Cleanup
 
-- `Launch Terminal` and `View Markets` look important, but they do not currently drive a real user flow.
-- The hero data card shows made-up values and confidence numbers.
-- The large decorative images are not tied to the product and can distract from the real flow.
-- The `AI Pulse Insight` block does not match the current v1 scope.
-- The `Signal Lifecycle` section promises things like smart oracle-style flow in a way that is stronger than the actual frontend experience right now.
-- Footer links like `API Documentation`, `Risk Disclosure`, `Privacy Policy`, and `System Status` currently point nowhere useful.
+- The landing page still carries the most aspirational copy and should be tightened to the actual v1 product: virtual prediction markets, Pacifica read-only data, and leaderboard play.
+- Any remaining references to AI insight, real trading, wallet claims, or unsupported signal types should be removed unless the backend supports them.
+- The frontend still uses `@sveltejs/adapter-auto`; deployment alignment should switch it to `@sveltejs/adapter-vercel` when deployment work resumes.
+- Some pages still fetch after mount instead of using route-level loads. That is acceptable for now, but the loading strategy should be unified when speed or SEO starts to matter.
+- Realtime support exists in the backend, but the frontend should only consume it where it improves visible market state instead of adding decorative motion.
 
-## Top Navigation
+## Page Notes
 
-- `Log In` does not match the current guest-session product shape.
-- `Launch Terminal` appears again as a major action, but it still needs a real destination and purpose.
-- `Leaderboard` is visible in the main nav even though it is not backed by real data yet.
+- The landing page should become a truthful product introduction instead of a concept deck.
+- The dashboard should stay focused on active/resolved markets and current player state.
+- The create-market page should keep one backend request for market creation plus creator opening stake.
+- The market-detail page should keep settlement and balance math out of the browser.
+- The portfolio page should remain a read-only account surface unless deeper history filters are added.
+- The leaderboard page should stay a public read-mostly surface until player profile drill-downs exist.
 
-## Dashboard
+## Component Notes
 
-- The featured market cards are hardcoded sample cards.
-- The `ALL`, `CRYPTO`, and `MACRO` filter buttons only change local button state right now.
-- The left sidebar items like `Live Feed`, `High Volatility`, `New Markets`, `Ending Soon`, and `Watchlist` all look interactive, but they do not do real work.
-- The `Trade Now`, `Support`, and `API Documentation` actions in the sidebar are placeholders.
-- The summary strip uses made-up counts like active markets, resolving soon, participation, and win rate.
-- `Advanced Liquidity Analysis` is a decorative callout, not a real feature.
-- The `Live Signal Panel` is sample data.
-- `Your Active Markets` is sample data.
-- `Recent Results` is sample data.
-- `Leaderboard Preview` is sample data.
-- `Trending Categories` is sample data and the links do not lead to real filtered views.
-- The floating action button in the lower right looks important but does not do anything.
-
-## Create Market Page
-
-- `Open-interest-based` appears as a market type even though that is not in v1.
-- `PUBLIC` and `PRIVATE` visibility adds a choice that the backend does not support right now.
-- The settlement-source card is fixed text instead of being tied to the selected market setup.
-- The preview card shows fake time, fake odds, and fake trader count.
-- The `AI Intelligence` panel is not part of the current product scope.
-- The form is visually rich, but several fields still behave like a static mock instead of a real creation flow.
-
-## Market Detail Page
-
-- The page does not really use the route id yet. It shows one hardcoded market.
-- The stat blocks for price, funding, open interest, and volume are sample values.
-- The `Pulse AI Intelligence` block is out of scope for v1.
-- The market activity feed is fake.
-- The related-market section is hardcoded.
-- `Slippage Tolerance` feels unnecessary unless the backend actually supports that concept for this product.
-- `Place Trade` looks live, but it is not connected yet.
-
-## Resolved Market Page
-
-- The full resolved view is still hardcoded.
-- `Claim Funds to Wallet` does not match the current v1 product, since wallet flow is not part of this version.
-- `Join Similar Markets` and `View Portfolio` need to be real routes or should be treated as placeholders.
-- The event lifecycle is sample content.
-- The market-intelligence block is sample content.
-
-## Portfolio Page
-
-- The holdings table is sample data.
-- The stat cards are sample data.
-- The tabs look useful, but they do not lead to real filtered content yet.
-- `Filter By Asset` is decorative right now.
-- `Predictive Insights` is outside the current v1 scope.
-- `Performance Matrix` is sample content.
-- `Export Performance Audit` is a placeholder action.
-
-## Leaderboard Page
-
-- The whole page is currently a visual concept, not a real product page.
-- The tabs are local-only and do not load anything real.
-- Podium, ranking table, feed, and vitals are all sample content.
-- `Load Detailed Registry` is a placeholder action.
-- Since leaderboard support is not part of the current backend work, this page should probably be deferred instead of lightly polished.
-
-## Shared Component Notes
-
-- [Frontend\src\lib\components\TopNavBar.svelte](c:\Hackathons\Pacific Prediction\Frontend\src\lib\components\TopNavBar.svelte) still pushes a login-style flow instead of a guest-session flow.
-- [Frontend\src\lib\components\MarketCard.svelte](c:\Hackathons\Pacific Prediction\Frontend\src\lib\components\MarketCard.svelte) is built around sample labels like odds, timer, open interest, and AI insight, so it will need trimming once real backend data is used.
-- Some pages contain odd text artifacts from copied content. Those should be cleaned when the real data pass begins.
+- [Frontend/src/lib/components/TopNavBar.svelte](file:///C:/Hackathons/Pacific%20Prediction/Frontend/src/lib/components/TopNavBar.svelte) owns the current nav chrome and brand icon usage.
+- [Frontend/src/lib/guest-session.ts](file:///C:/Hackathons/Pacific%20Prediction/Frontend/src/lib/guest-session.ts) owns guest bootstrapping plus the localStorage guest cache.
+- [Frontend/static/favicon.png](file:///C:/Hackathons/Pacific%20Prediction/Frontend/static/favicon.png) is the current shared favicon and navigation brand mark.
+- [Frontend/src/routes/api/[...path]/+server.ts](file:///C:/Hackathons/Pacific%20Prediction/Frontend/src/routes/api/[...path]/+server.ts) keeps browser requests on the app origin and proxies them to the backend.
 
 ## Product-Alignment Recommendation
 
-If I follow the product-alignment path, I should do this:
-
-- Keep the strong visual layout.
-- Remove or hide anything that implies unsupported features.
-- Replace fake content with real backend-backed content.
-- If a section has no backend support and no immediate product value, defer it instead of keeping it as decorative noise.
+I should keep the strong visual direction, but every visible claim should map to a real backend capability. If a section has no backend support and no immediate product value, I should defer it instead of keeping it as decorative noise.

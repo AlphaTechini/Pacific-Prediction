@@ -53,10 +53,13 @@ Pacific Prediction/
 |   +-- README.md
 |   +-- static/
 |   |   +-- README.md
+|   |   +-- favicon.png
+|   |   +-- robots.txt
 |   +-- stitch_screens/
 |   |   +-- README.md
 |   +-- src/
 |       +-- README.md
+|       +-- app.html
 |       +-- lib/
 |       |   +-- README.md
 |       |   +-- assets/
@@ -87,11 +90,6 @@ Pacific Prediction/
 |           |           +-- README.md
 |           +-- portfolio/
 |               +-- README.md
-+-- skills/
-|   +-- README.md
-|   +-- pacifica-pulse-v1/
-|       +-- README.md
-|       +-- SKILL.md
 +-- Readme.md
 +-- Resources.md
 +-- Research.md
@@ -100,7 +98,6 @@ Pacific Prediction/
 +-- frontend-notes.md
 +-- schema.md
 +-- structure.md
-+-- task.md
 ```
 
 ## High-Level Mapping
@@ -112,11 +109,11 @@ Pacific Prediction/
 - Frontend implementation notes live in [frontend-notes.md](file:///C:/Hackathons/Pacific%20Prediction/frontend-notes.md) and [frontend-integration.md](file:///C:/Hackathons/Pacific%20Prediction/frontend-integration.md).
 - Backend package ownership begins in [backend/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/README.md).
 - Frontend package ownership begins in [Frontend/README.md](file:///C:/Hackathons/Pacific%20Prediction/Frontend/README.md).
-- Public OpenClaw skill packaging begins in [skills/README.md](file:///C:/Hackathons/Pacific%20Prediction/skills/README.md).
 
 ## Frontend Logic Map
 
 - To find frontend source ownership visit [Frontend/src/README.md](file:///C:/Hackathons/Pacific%20Prediction/Frontend/src/README.md).
+- To find the static favicon and nav brand image visit [Frontend/static/README.md](file:///C:/Hackathons/Pacific%20Prediction/Frontend/static/README.md).
 - To find shared frontend data, UI, and types visit [Frontend/src/lib/README.md](file:///C:/Hackathons/Pacific%20Prediction/Frontend/src/lib/README.md).
 - To find reusable UI components visit [Frontend/src/lib/components/README.md](file:///C:/Hackathons/Pacific%20Prediction/Frontend/src/lib/components/README.md).
 - To find backend proxy helpers visit [Frontend/src/lib/server/README.md](file:///C:/Hackathons/Pacific%20Prediction/Frontend/src/lib/server/README.md).
@@ -147,12 +144,6 @@ Pacific Prediction/
 - To find deterministic settlement and payout application visit [backend/internal/settlement/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/settlement/README.md).
 - To find PostgreSQL repositories and transaction boundaries visit [backend/internal/storage/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/internal/storage/README.md).
 - To find migration files visit [backend/migrations/README.md](file:///C:/Hackathons/Pacific%20Prediction/backend/migrations/README.md).
-
-## Skills Logic Map
-
-- To find the public OpenClaw skill index visit [skills/README.md](file:///C:/Hackathons/Pacific%20Prediction/skills/README.md).
-- To find the publishable Pacifica Pulse skill visit [skills/pacifica-pulse-v1/README.md](file:///C:/Hackathons/Pacific%20Prediction/skills/pacifica-pulse-v1/README.md).
-- To find the actual OpenClaw skill entrypoint visit [skills/pacifica-pulse-v1/SKILL.md](file:///C:/Hackathons/Pacific%20Prediction/skills/pacifica-pulse-v1/SKILL.md).
 
 ## Folder README Index
 
@@ -194,8 +185,6 @@ Pacific Prediction/
 - [Frontend/src/routes/markets detail README.md](file:///C:/Hackathons/Pacific%20Prediction/Frontend/src/routes/markets/[id]/README.md)
 - [Frontend/src/routes/resolved market README.md](file:///C:/Hackathons/Pacific%20Prediction/Frontend/src/routes/markets/[id]/resolved/README.md)
 - [Frontend/src/routes/portfolio/README.md](file:///C:/Hackathons/Pacific%20Prediction/Frontend/src/routes/portfolio/README.md)
-- [skills/README.md](file:///C:/Hackathons/Pacific%20Prediction/skills/README.md)
-- [skills/pacifica-pulse-v1/README.md](file:///C:/Hackathons/Pacific%20Prediction/skills/pacifica-pulse-v1/README.md)
 
 ## Boundary Summary
 

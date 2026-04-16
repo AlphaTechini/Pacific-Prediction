@@ -5,11 +5,9 @@
 - [structure.md](./structure.md)
 - [architecture.md](./architecture.md)
 - [schema.md](./schema.md)
-- [task.md](./task.md)
 - [Research.md](./Research.md)
 - [frontend-notes.md](./frontend-notes.md)
 - [frontend-integration.md](./frontend-integration.md)
-- [skills/README.md](./skills/README.md)
 
 ## Overview
 
@@ -21,12 +19,14 @@ The current codebase is no longer backend-only. The real product loop now exists
 - a Go API for guest sessions, balances, markets, positions, leaderboard reads, and SSE updates
 - PostgreSQL-backed authoritative balances, positions, and settlement records
 - a settlement worker that resolves price, candle, and funding markets from Pacifica data
+- a SvelteKit static PNG favicon that also acts as the top-navigation brand mark
 
 ## Current Product Shape
 
 In v1 today:
 
 - I use guest accounts instead of wallet auth.
+- I cache the guest player id and display name in browser localStorage so returning users do not silently create another guest identity on revisit.
 - I use virtual balances and virtual payouts only.
 - I support `price_threshold`, `candle_direction`, and `funding_threshold` markets.
 - I settle every market from one explicit Pacifica-derived source.
@@ -44,6 +44,7 @@ The frontend currently includes:
 - a portfolio page backed by player balance and positions
 - a leaderboard page backed by `GET /api/v1/leaderboard`
 - a SvelteKit backend proxy under `/api/*` so browser calls stay pointed at our app, not directly at Pacifica
+- a PNG brand icon served from `Frontend/static/favicon.png` and reused by the top navigation
 
 ## Current Backend API
 
@@ -71,6 +72,7 @@ The backend currently provides:
 - Funding markets settle from Pacifica funding history.
 - Settlement updates market result, position outcomes, balances, and settlement audit records in one transaction.
 - The leaderboard is derived from stored market and position history instead of a separate cache system.
+- Guest continuity is assisted by a frontend localStorage cache, but backend authorization still depends on the secure session cookie.
 
 ## Payout Model
 
@@ -93,8 +95,6 @@ This keeps the product easy to explain and easy to verify.
 - To find the current repository map visit [structure.md](./structure.md).
 - To find the architecture decisions and tradeoffs visit [architecture.md](./architecture.md).
 - To find schema reasoning visit [schema.md](./schema.md).
-- To find the execution record and task status visit [task.md](./task.md).
 - To find frontend implementation notes visit [frontend-notes.md](./frontend-notes.md) and [frontend-integration.md](./frontend-integration.md).
 - To find backend package ownership visit [backend/README.md](./backend/README.md).
 - To find frontend package ownership visit [Frontend/README.md](./Frontend/README.md).
-- To find OpenClaw skill packaging visit [skills/README.md](./skills/README.md).

@@ -17,6 +17,7 @@ I use the backend as one Go service that owns guest identity, virtual balances, 
 ## Current Backend Capabilities
 
 - Guest session creation and secure-cookie session lookup
+- Cookie-backed authorization remains server-authoritative; the frontend guest cache is not trusted for backend access
 - Current player profile and balance reads
 - Product-shaped market creation with creator side and creator stake
 - Additional YES or NO position placement on existing markets

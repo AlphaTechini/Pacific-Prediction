@@ -10,6 +10,7 @@ I use this folder for shared frontend data helpers, API types, reusable componen
 - I keep shared UI components here so the app shell stays visually consistent.
 - I keep the backend proxy utilities isolated under `server` because they are not browser-only code.
 - I let `guest-session.ts` cache the guest player id and display name in browser localStorage so returning to the app does not silently create another guest identity.
+- I keep that cache as a UI continuity hint only; backend authorization still depends on the secure session cookie.
 
 ## Logic Tracking
 
@@ -28,5 +29,5 @@ I use this folder for shared frontend data helpers, API types, reusable componen
 ## Component And Connection Map
 
 - The shared frontend type system can be found in [api-types.ts](file:///C:/Hackathons/Pacific%20Prediction/Frontend/src/lib/api-types.ts).
-- The backend session connection can be found in [guest-session.ts](file:///C:/Hackathons/Pacific%20Prediction/Frontend/src/lib/guest-session.ts).
+- The backend session connection and localStorage guest cache can be found in [guest-session.ts](file:///C:/Hackathons/Pacific%20Prediction/Frontend/src/lib/guest-session.ts).
 - The backend proxy connection can be found in [server/README.md](file:///C:/Hackathons/Pacific%20Prediction/Frontend/src/lib/server/README.md).
